@@ -9,36 +9,36 @@ COLORS = 1
 LANGUAGE = "pt-br"
 
 dict_config = {
-    1: {'backgroundColor' : 'black','fontColor' : 'white','map_style' : 'carto-darkmatter'},
-    2: {'backgroundColor' : 'white','fontColor' : 'black','map_style' : 'carto-positron'}
-    }
-    
+    1: {'backgroundColor': 'black', 'fontColor': 'white', 'map_style': 'carto-darkmatter'},
+    2: {'backgroundColor': 'white', 'fontColor': 'black', 'map_style': 'carto-positron'}
+}
+
 dict_columns = {
-    'Yes': {'pt-br':'Sim', 'en':'Yes'},
-    'No': {'pt-br':'Não', 'en':'No'},
-    'All': {'pt-br':'Todos', 'en':'All'},
-    'Pet': {'pt-br':'Animais', 'en':'Pet'},
-    'AllCities': {'pt-br':'Todas', 'en':'All'},
-    'City': {'pt-br':'Cidade', 'en':'City'},
-    'Shelter': {'pt-br':'Abrigo', 'en':'Shelter'},
-    'People': {'pt-br':'Pessoas', 'en':'People'},
-    'UpdatedAt': {'pt-br':'Atualizado', 'en':'Updated At'},
-    'Address': {'pt-br':'Endereço', 'en':'Address'},
-    'Capacity': {'pt-br':'Capacidade', 'en':'Capacity'},
-    'Availability': {'pt-br':'Disponibilidade', 'en':'Availability'},
-    'VerificationStatus': {'pt-br':'Verificado', 'en':'Verified'},
-    'PetFriendly': {'pt-br':'Aceita Animais', 'en':'Pet Friendly'},
-    'AmountOfShelters': {'pt-br':'Número de Abrigos', 'en':'Amount Of Shelters'},
-    'AmountOfPeopleSheltered': {'pt-br':'Número de Pessoas Abrigadas', 'en':'Amount Of People Sheltered'},
-    'SheltersVerified': {'pt-br':'Verificados', 'en':'Verified'},
-    'SheltersNotVerified': {'pt-br':'Nāo Verificados', 'en':'Not Verified'},
-    'Search': {'pt-br':'Buscar por abrigo ou endereço', 'en':'Search for shelter or address'},
-    } 
+    'Yes': {'pt-br': 'Sim', 'en': 'Yes'},
+    'No': {'pt-br': 'Não', 'en': 'No'},
+    'All': {'pt-br': 'Todos', 'en': 'All'},
+    'Pet': {'pt-br': 'Animais', 'en': 'Pet'},
+    'AllCities': {'pt-br': 'Todas', 'en': 'All'},
+    'City': {'pt-br': 'Cidade', 'en': 'City'},
+    'Shelter': {'pt-br': 'Abrigo', 'en': 'Shelter'},
+    'People': {'pt-br': 'Pessoas', 'en': 'People'},
+    'UpdatedAt': {'pt-br': 'Atualizado', 'en': 'Updated At'},
+    'Address': {'pt-br': 'Endereço', 'en': 'Address'},
+    'Capacity': {'pt-br': 'Capacidade', 'en': 'Capacity'},
+    'Availability': {'pt-br': 'Disponibilidade', 'en': 'Availability'},
+    'VerificationStatus': {'pt-br': 'Verificado', 'en': 'Verified'},
+    'PetFriendly': {'pt-br': 'Aceita Animais', 'en': 'Pet Friendly'},
+    'AmountOfShelters': {'pt-br': 'Número de Abrigos', 'en': 'Amount Of Shelters'},
+    'AmountOfPeopleSheltered': {'pt-br': 'Número de Pessoas Abrigadas', 'en': 'Amount Of People Sheltered'},
+    'SheltersVerified': {'pt-br': 'Verificados', 'en': 'Verified'},
+    'SheltersNotVerified': {'pt-br': 'Nāo Verificados', 'en': 'Not Verified'},
+    'Search': {'pt-br': 'Buscar por abrigo ou endereço', 'en': 'Search for shelter or address'},
+}
 
 dict_columns2 = {
-    'availability':'availability',
-    'link':'link',  
-    } 
+    'availability': 'availability',
+    'link': 'link',
+}
 
 backgroundColor = dict_config.get(COLORS).get("backgroundColor")
 fontColor = dict_config.get(COLORS).get("fontColor")
@@ -49,20 +49,28 @@ def get_data():
         return json.load(file)
 
 def create_link(row):
-    return f"[{row['name']}](https://sos-rs.com/abrigo/{row['id']})"
+    icons = f"{row['pet_icon']}"
+    return f"{icons} [{row['name']}](https://sos-rs.com/abrigo/{row['id']})"
 
 def format_date(data_original):
     data_datetime = pd.to_datetime(data_original)
     return data_datetime.strftime("%d/%m/%Y %H:%M:%S")
 
 def get_formated_data():
-    # TODO: read from API
-    #shelter_data = get_data()
     df = pd.json_normalize(get_data())
+
+    df = df[df['actived'] == True]
+    # Add column 'pet_icon' based on 'petFriendly' column
+    df['pet_icon'] = df['petFriendly'].apply(lambda x: '🐾' if x else '')
+    # Add column 'verification_icon' based on 'verified' column
+    df['verification_icon'] = df['verified'].apply(lambda x: '✔️' if x else '❌')
+
+    # Create a new column for capacity information
+    df['capacity_info'] = df.apply(lambda row: f"{int(row['shelteredPeople']) if pd.notnull(row['shelteredPeople']) else '-'}/{int(row['capacity']) if pd.notnull(row['capacity']) else '-'}", axis=1)
+
     # link Column to create hyperlink
     df['link'] = df.apply(create_link, axis=1)
 
-    # TODO: Create new visual using the supplies
     df['shelter_supplies_str'] = df['shelterSupplies'].apply(lambda x: ', '.join([supply['supply']['name'] for supply in x]))
     df.drop(columns=['shelterSupplies'], inplace=True)
 
@@ -85,11 +93,7 @@ def get_formated_data():
     df['city_grouped'] = df['city'].fillna('Desconhecida').apply(lambda x: x if city_counts[x] >= 0.05 else 'Outras Cidades')
 
     df.drop(['pix','street','neighbourhood','streetNumber','prioritySum','zipCode','createdAt'], axis=1, inplace=True)
-    # Add column 'pet_icon' based on 'petFriendly' column
-    df['pet_icon'] = df['petFriendly'].apply(lambda x: '🐾' if x else '')
-    # Add column 'verification_icon' based on 'verified' column
-    df['verification_icon'] = df['verified'].apply(lambda x: '✔️' if x else '❌')
-
+    
     df.rename(columns=dict_columns2, inplace=True)
     return df
 
@@ -98,11 +102,10 @@ def data_cities(df):
     city_options = [{'label': city, 'value': city} for city in cities if city is not None]
     city_options.insert(0, {'label': 'Todas as Cidades', 'value': 'Todas as Cidades'})
     city_options = sorted(city_options, key=lambda x: x['label'])
-    city_options = sorted(city_options, key=lambda x: x['label'])
     return city_options
 
 df = get_formated_data()
-city_options=data_cities(df)
+city_options = data_cities(df)
 
 app = dash.Dash(__name__)
 server = app.server
@@ -221,8 +224,8 @@ app.layout = html.Div([
      ]
 )
 def update_data(search, city, verification, pet, availability):
-    filtered_df=get_formated_data()
-    city_options=data_cities(filtered_df)
+    filtered_df = get_formated_data()
+    city_options = data_cities(filtered_df)
 
     if search:
         search = search.lower()
@@ -271,8 +274,6 @@ def update_data(search, city, verification, pet, availability):
             'Consultar': 'blue'
         },
         zoom=9,
-        # height=400,
-        # width=600
     )
     fig.update_layout(mapbox_style=map_style)
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor=backgroundColor)
@@ -296,69 +297,63 @@ def update_data(search, city, verification, pet, availability):
     pet_friendly_shelters = html.P(f"{dict_columns.get('PetFriendly').get(LANGUAGE)}: {filtered_df['petFriendly'].sum()}", style={'color': fontColor,'fontWeight': 'bold'})
 
     shelter_table = dash_table.DataTable(
-    columns=[
-            {"name": f"{dict_columns.get('Shelter').get(LANGUAGE)}", "id": "link", "presentation": "markdown"},  # Defina a apresentação como "markdown" para interpretar o conteúdo como Markdown
+        columns=[
+            {"name": f"{dict_columns.get('Shelter').get(LANGUAGE)}", "id": "link", "presentation": "markdown"},
             {"name": f"{dict_columns.get('Address').get(LANGUAGE)}", "id": "address"},
             {"name": f"{dict_columns.get('City').get(LANGUAGE)}", "id": "city"},
-            {"name": f"{dict_columns.get('Capacity').get(LANGUAGE)}", "id": "capacity"},
-            {"name": f"{dict_columns.get('People').get(LANGUAGE)}", "id": "shelteredPeople"},
-            {"name": f"{dict_columns.get('Pet').get(LANGUAGE)}", "id": "pet_icon"} ,
-            {"name": f"{dict_columns.get('VerificationStatus').get(LANGUAGE)}", "id": "verification_icon"},
+            {"name": f"{dict_columns.get('Capacity').get(LANGUAGE)}", "id": "capacity_info"},
             {"name": f"{dict_columns.get('UpdatedAt').get(LANGUAGE)}", "id": "updatedAt"},
-    ],
-    data=filtered_df.to_dict('records'),
-    sort_action='native',
-    page_size=PAGE_SIZE,
-    page_action='native',
-    style_table={'overflowX': 'auto', 'width': '100%'},
-    style_header={'color': fontColor, 'backgroundColor': backgroundColor, 'textAlign': 'left', 'fontSize': '15px'},
-    style_data={'whiteSpace': 'normal', 'textOverflow': 'ellipsis', 'overflow': 'hidden'},
-    style_cell={
-            'textAlign': 'left',
+        ],
+        data=filtered_df.to_dict('records'),
+        sort_action='native',
+        page_size=PAGE_SIZE,
+        page_action='native',
+        style_table={'overflowX': 'auto', 'width': '100%'},
+        style_header={'color': fontColor, 'backgroundColor': backgroundColor, 'textAlign': 'left', 'fontSize': '15px'},
+        style_data={'whiteSpace': 'normal', 'textOverflow': 'ellipsis', 'overflow': 'hidden'},
+        style_cell={
+            'textAlign': 'center',
             'whiteSpace': 'normal',
             'overflow': 'hidden',
             'textOverflow': 'ellipsis',
         },
-    style_cell_conditional=[
+        style_cell_conditional=[
             {'if': {'column_id': 'link'}, 'width': '25%'},
             {'if': {'column_id': 'address'}, 'width': '25%'},
             {'if': {'column_id': 'city'}, 'width': '5%'},
-            {'if': {'column_id': 'capacity'}, 'width': '3%'},
-            {'if': {'column_id': 'shelteredPeople'}, 'width': '3%'},
-            {'if': {'column_id': 'pet_icon'}, 'width': '2%'},
-            {'if': {'column_id': 'verification_icon'}, 'width': '3%'},
-            {'if': {'column_id': 'updatedAt'}, 'width': '4%'}, 
+            {'if': {'column_id': 'capacity_info'}, 'width': '5%'},
+            {'if': {'column_id': 'updatedAt'}, 'width': '5%'}, 
         ],
-    style_data_conditional=[
-        {
-            'if': {
-                'filter_query': '{availability} = "Lotado"',  
+        style_data_conditional=[
+            {
+                'if': {
+                    'filter_query': '{availability} = "Lotado"',
+                },
+                'backgroundColor': '#FF4136',
+                'color': 'black'
             },
-            'backgroundColor': '#FF4136',
-            'color': 'black'
-        },
-        {
-            'if': {
-                'filter_query': '{availability} = "Disponível"',
+            {
+                'if': {
+                    'filter_query': '{availability} = "Disponível"',
+                },
+                'backgroundColor': '#2ECC40',
+                'color': 'black'
             },
-            'backgroundColor': '#2ECC40',
-            'color': 'black'
-        },
-        {
-            'if': {
-                'filter_query': '{availability} = "Cheio"',
+            {
+                'if': {
+                    'filter_query': '{availability} = "Cheio"',
+                },
+                'backgroundColor': '#FF851B',
+                'color': 'black'
             },
-            'backgroundColor': '#FF851B',
-            'color': 'black'
-        },
-        {
-            'if': {
-                'filter_query': '{availability} = "Consultar"',
+            {
+                'if': {
+                    'filter_query': '{availability} = "Consultar"',
+                },
+                'backgroundColor': '#00BFFF',
+                'color': 'black'
             },
-            'backgroundColor': '#00BFFF',
-            'color': 'black'
-        },
-    ],
+        ],
     )
 
     return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table, city_options
