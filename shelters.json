@@ -2794,114 +2794,6 @@
     "shelterSupplies": [
       {
         "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
-        "supplyId": "dc359231-d372-495a-a9e0-2bbd47965809",
-        "priority": 100,
-        "quantity": 0,
-        "createdAt": "2024-05-19T01:01:50.223Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "dc359231-d372-495a-a9e0-2bbd47965809",
-          "supplyCategoryId": "718d5be3-69c3-4216-97f1-12b690d0eb97",
-          "name": "Absorvente",
-          "createdAt": "2024-05-09T17:08:51.953Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
-        "supplyId": "e99b7beb-668d-45f0-b368-6fad52f284a5",
-        "priority": 10,
-        "quantity": 0,
-        "createdAt": "2024-05-19T00:58:26.403Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "e99b7beb-668d-45f0-b368-6fad52f284a5",
-          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
-          "name": "Itens de limpeza",
-          "createdAt": "2024-05-07T10:53:21.931Z",
-          "updatedAt": "2024-05-08T05:08:02.387Z"
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
-        "supplyId": "4ad7843d-b3a9-4997-b051-548b559cfcf2",
-        "priority": 10,
-        "quantity": 0,
-        "createdAt": "2024-05-19T00:58:38.392Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "4ad7843d-b3a9-4997-b051-548b559cfcf2",
-          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
-          "name": "Itens De Higiene",
-          "createdAt": "2024-05-16T21:27:46.890Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
-        "supplyId": "463b2006-ff25-4d63-8b79-17666b4b4d02",
-        "priority": 100,
-        "quantity": 0,
-        "createdAt": "2024-05-19T00:59:01.095Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "463b2006-ff25-4d63-8b79-17666b4b4d02",
-          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
-          "name": "Leite",
-          "createdAt": "2024-05-11T16:43:08.131Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
-        "supplyId": "a6bf37fb-1ae0-4682-881f-a213db5b4323",
-        "priority": 100,
-        "quantity": 0,
-        "createdAt": "2024-05-19T00:59:36.319Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "a6bf37fb-1ae0-4682-881f-a213db5b4323",
-          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
-          "name": "Meia Infantil",
-          "createdAt": "2024-05-11T20:08:44.255Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
-        "supplyId": "463c4b4d-dec4-4f40-9f6f-fe44474e8447",
-        "priority": 100,
-        "quantity": 0,
-        "createdAt": "2024-05-19T00:59:46.057Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "463c4b4d-dec4-4f40-9f6f-fe44474e8447",
-          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
-          "name": "Meias",
-          "createdAt": "2024-05-14T16:40:34.881Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
         "supplyId": "468fd58a-21d2-447e-828c-3af01effbbe2",
         "priority": 10,
         "quantity": 1,
@@ -2966,6 +2858,114 @@
           "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
           "name": "Cesta Básica",
           "createdAt": "2024-05-14T17:23:37.191Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
+        "supplyId": "a4194a6f-40f5-4d80-af6e-ab9d9bd78424",
+        "priority": 100,
+        "quantity": 0,
+        "createdAt": "2024-05-19T00:55:09.998Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "a4194a6f-40f5-4d80-af6e-ab9d9bd78424",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Cobertas",
+          "createdAt": "2024-05-15T13:32:28.938Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
+        "supplyId": "29798ae4-8aa1-4ce0-85aa-07b86273c32e",
+        "priority": 100,
+        "quantity": 0,
+        "createdAt": "2024-05-19T00:55:32.798Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "29798ae4-8aa1-4ce0-85aa-07b86273c32e",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Coletes Reflexivos Ou Tnt",
+          "createdAt": "2024-05-08T23:09:30.574Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
+        "supplyId": "0a12c892-0352-4a3c-9a31-0e9103d85204",
+        "priority": 10,
+        "quantity": 0,
+        "createdAt": "2024-05-19T00:55:49.229Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "0a12c892-0352-4a3c-9a31-0e9103d85204",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Cuecas",
+          "createdAt": "2024-05-14T15:43:28.840Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
+        "supplyId": "80590162-dc28-4b03-838e-dc1def107e65",
+        "priority": 10,
+        "quantity": 0,
+        "createdAt": "2024-05-19T00:55:59.921Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "80590162-dc28-4b03-838e-dc1def107e65",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Cuecas Adultos G",
+          "createdAt": "2024-05-14T16:40:00.225Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
+        "supplyId": "45ec530c-046f-4c3d-93f7-16f30389bbf7",
+        "priority": 100,
+        "quantity": 0,
+        "createdAt": "2024-05-19T00:56:16.468Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "45ec530c-046f-4c3d-93f7-16f30389bbf7",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Desentupidor De Vaso",
+          "createdAt": "2024-05-14T16:46:07.272Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "69f80a6a-da7e-4990-a752-b7982e1bdddb",
+        "supplyId": "4cffa928-96fd-4f5a-89bc-50ccde8d5d6f",
+        "priority": 10,
+        "quantity": 0,
+        "createdAt": "2024-05-19T00:56:26.278Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "4cffa928-96fd-4f5a-89bc-50ccde8d5d6f",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Desodorantes",
+          "createdAt": "2024-05-14T15:48:41.709Z",
           "updatedAt": null
         },
         "tags": [
@@ -3254,15 +3254,105 @@
     "capacity": 1,
     "petFriendly": true,
     "shelteredPeople": 47,
-    "prioritySum": 1642,
+    "prioritySum": 1764,
     "verified": false,
     "latitude": null,
     "longitude": null,
     "actived": true,
     "category": "Shelter",
     "createdAt": "2024-05-16T22:22:06.679Z",
-    "updatedAt": "2024-05-17T18:44:52.664Z",
+    "updatedAt": "2024-05-19T10:43:00.084Z",
     "shelterSupplies": [
+      {
+        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
+        "supplyId": "c8bc28ab-e816-4c9b-b98c-d1d77519b206",
+        "priority": 10,
+        "quantity": 0,
+        "createdAt": "2024-05-19T10:03:18.545Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "c8bc28ab-e816-4c9b-b98c-d1d77519b206",
+          "supplyCategoryId": "03fdb0f2-6b50-4895-b970-5793cad80c86",
+          "name": "Ração Gato",
+          "createdAt": "2024-05-15T11:34:08.345Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
+        "supplyId": "6fe50d61-1324-4f74-ab36-1f3715369b44",
+        "priority": 1,
+        "quantity": 0,
+        "createdAt": "2024-05-19T09:43:49.711Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "6fe50d61-1324-4f74-ab36-1f3715369b44",
+          "supplyCategoryId": "d7627977-1c42-48a8-abe5-45422ddc97df",
+          "name": "Fralda G",
+          "createdAt": "2024-05-15T12:07:49.363Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "RemainingSupplies"
+        ]
+      },
+      {
+        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
+        "supplyId": "80590162-dc28-4b03-838e-dc1def107e65",
+        "priority": 100,
+        "quantity": 0,
+        "createdAt": "2024-05-19T09:55:08.839Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "80590162-dc28-4b03-838e-dc1def107e65",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Cuecas Adultos G",
+          "createdAt": "2024-05-14T16:40:00.225Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
+        "supplyId": "b1d8f194-15ac-4490-b062-d45434d41966",
+        "priority": 10,
+        "quantity": 0,
+        "createdAt": "2024-05-19T10:43:00.094Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "b1d8f194-15ac-4490-b062-d45434d41966",
+          "supplyCategoryId": "037ac262-4f35-42e0-83e1-4cdcceedb39c",
+          "name": "Fita Durex larga",
+          "createdAt": "2024-05-07T19:03:33.691Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
+        "supplyId": "463b2006-ff25-4d63-8b79-17666b4b4d02",
+        "priority": 1,
+        "quantity": 12,
+        "createdAt": "2024-05-19T09:55:46.255Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "463b2006-ff25-4d63-8b79-17666b4b4d02",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Leite",
+          "createdAt": "2024-05-11T16:43:08.131Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "RemainingSupplies"
+        ]
+      },
       {
         "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
         "supplyId": "ab840b70-dabb-4815-a8d9-5122baf2d7e8",
@@ -3499,60 +3589,6 @@
       },
       {
         "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
-        "supplyId": "ada0b299-35c4-46cd-96fd-9d71b4cc0720",
-        "priority": 100,
-        "quantity": 0,
-        "createdAt": "2024-05-17T01:33:07.161Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "ada0b299-35c4-46cd-96fd-9d71b4cc0720",
-          "supplyCategoryId": "bf8b5e09-544f-4eff-9bb7-6220aaa34a85",
-          "name": "Cueca G E Gg",
-          "createdAt": "2024-05-11T18:46:31.361Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
-        "supplyId": "2bcb78ac-03c5-4707-bb2d-ef679465e2a1",
-        "priority": 100,
-        "quantity": 0,
-        "createdAt": "2024-05-17T01:33:31.521Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "2bcb78ac-03c5-4707-bb2d-ef679465e2a1",
-          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
-          "name": "Talheres Descartáveis",
-          "createdAt": "2024-05-14T15:50:06.440Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
-        "supplyId": "13a4afa8-2b27-43c2-8ac1-0a2b29ce7832",
-        "priority": 10,
-        "quantity": 0,
-        "createdAt": "2024-05-17T01:33:42.306Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "13a4afa8-2b27-43c2-8ac1-0a2b29ce7832",
-          "supplyCategoryId": "037ac262-4f35-42e0-83e1-4cdcceedb39c",
-          "name": "Papel toalha",
-          "createdAt": "2024-05-06T13:13:55.587Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
         "supplyId": "66a98038-4588-431c-814d-0c440c4683af",
         "priority": 1,
         "quantity": 0,
@@ -3582,42 +3618,6 @@
           "name": "Mamadeira",
           "createdAt": "2024-05-06T13:17:45.797Z",
           "updatedAt": "2024-05-07T18:53:47.204Z"
-        },
-        "tags": [
-          "RemainingSupplies"
-        ]
-      },
-      {
-        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
-        "supplyId": "063d43f1-9f08-4943-8f82-b51aa4e49924",
-        "priority": 1,
-        "quantity": 0,
-        "createdAt": "2024-05-17T01:29:35.788Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "063d43f1-9f08-4943-8f82-b51aa4e49924",
-          "supplyCategoryId": "718d5be3-69c3-4216-97f1-12b690d0eb97",
-          "name": "Pomada para assadura",
-          "createdAt": "2024-05-08T13:29:57.355Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "RemainingSupplies"
-        ]
-      },
-      {
-        "shelterId": "c7e022df-e9cd-4d2e-8b38-962e09546772",
-        "supplyId": "524ad35e-7967-4ebf-96d8-cdf0f56d1e81",
-        "priority": 1,
-        "quantity": 0,
-        "createdAt": "2024-05-17T01:29:50.255Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "524ad35e-7967-4ebf-96d8-cdf0f56d1e81",
-          "supplyCategoryId": "718d5be3-69c3-4216-97f1-12b690d0eb97",
-          "name": "Sabonetes",
-          "createdAt": "2024-05-07T16:15:03.641Z",
-          "updatedAt": null
         },
         "tags": [
           "RemainingSupplies"
@@ -5738,7 +5738,7 @@
     "actived": true,
     "category": "Shelter",
     "createdAt": "2024-05-15T21:51:07.639Z",
-    "updatedAt": "2024-05-19T02:41:39.475Z",
+    "updatedAt": "2024-05-19T03:13:13.158Z",
     "shelterSupplies": [
       {
         "shelterId": "49285f7f-da98-4280-8be6-5a32ba230c9f",
@@ -16406,24 +16406,6 @@
     "shelterSupplies": [
       {
         "shelterId": "c03f447f-ac67-4d13-aa8f-01a1dc004d69",
-        "supplyId": "77396dd0-9afa-4ae9-9a10-1d796a79b8c0",
-        "priority": 100,
-        "quantity": null,
-        "createdAt": "2024-05-14T19:41:41.165Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "77396dd0-9afa-4ae9-9a10-1d796a79b8c0",
-          "supplyCategoryId": "ad0b5516-3eba-4368-8724-5cfb6a3ea2d3",
-          "name": "Manta Asfáltica",
-          "createdAt": "2024-05-12T00:55:30.042Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "c03f447f-ac67-4d13-aa8f-01a1dc004d69",
         "supplyId": "46b4ece1-549d-489c-bddd-74e8c61cca3f",
         "priority": 100,
         "quantity": null,
@@ -16578,6 +16560,24 @@
           "supplyCategoryId": "a3e3bdf8-0be4-4bdc-a3b0-b40ba931be5f",
           "name": "Carne Frango",
           "createdAt": "2024-05-08T19:00:36.369Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
+      {
+        "shelterId": "c03f447f-ac67-4d13-aa8f-01a1dc004d69",
+        "supplyId": "63683e0b-eb4b-4e46-99f4-377ca5bb26f0",
+        "priority": 100,
+        "quantity": null,
+        "createdAt": "2024-05-11T19:03:39.600Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "63683e0b-eb4b-4e46-99f4-377ca5bb26f0",
+          "supplyCategoryId": "718d5be3-69c3-4216-97f1-12b690d0eb97",
+          "name": "Fraldas",
+          "createdAt": "2024-05-07T16:15:22.152Z",
           "updatedAt": null
         },
         "tags": [
@@ -19658,14 +19658,14 @@
     "capacity": null,
     "petFriendly": true,
     "shelteredPeople": 180,
-    "prioritySum": 761,
+    "prioritySum": 762,
     "verified": false,
     "latitude": null,
     "longitude": null,
     "actived": true,
     "category": "Shelter",
     "createdAt": "2024-05-10T15:45:33.878Z",
-    "updatedAt": "2024-05-17T19:48:18.530Z",
+    "updatedAt": "2024-05-19T10:34:26.394Z",
     "shelterSupplies": [
       {
         "shelterId": "37c914da-7334-46ea-9c73-1f7513500268",
@@ -19787,6 +19787,24 @@
           "supplyCategoryId": "bf8b5e09-544f-4eff-9bb7-6220aaa34a85",
           "name": "Roupas para adultos",
           "createdAt": "2024-05-06T03:04:40.468Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "RemainingSupplies"
+        ]
+      },
+      {
+        "shelterId": "37c914da-7334-46ea-9c73-1f7513500268",
+        "supplyId": "9e9c2ba5-8e1b-4575-a2b0-82e4534f2bad",
+        "priority": 1,
+        "quantity": 0,
+        "createdAt": "2024-05-19T10:33:03.906Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "9e9c2ba5-8e1b-4575-a2b0-82e4534f2bad",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "20m De Lona Preta",
+          "createdAt": "2024-05-13T19:17:12.555Z",
           "updatedAt": null
         },
         "tags": [
@@ -49763,16 +49781,16 @@
     "shelterSupplies": [
       {
         "shelterId": "de500277-1e1d-47dc-96a4-349b3d4051d2",
-        "supplyId": "f8e618b1-c99d-4183-85f7-0b2c4407321f",
+        "supplyId": "b355c6b7-f9c9-4b2f-92a2-bb7f8adeb790",
         "priority": 100,
         "quantity": 0,
-        "createdAt": "2024-05-16T01:41:04.013Z",
+        "createdAt": "2024-05-16T01:41:37.807Z",
         "updatedAt": null,
         "supply": {
-          "id": "f8e618b1-c99d-4183-85f7-0b2c4407321f",
+          "id": "b355c6b7-f9c9-4b2f-92a2-bb7f8adeb790",
           "supplyCategoryId": "718d5be3-69c3-4216-97f1-12b690d0eb97",
-          "name": "Condicionador Infantil",
-          "createdAt": "2024-05-14T15:04:54.179Z",
+          "name": "Shampoo Infantil",
+          "createdAt": "2024-05-12T00:55:30.966Z",
           "updatedAt": null
         },
         "tags": [
@@ -56365,15 +56383,33 @@
     "capacity": 250,
     "petFriendly": false,
     "shelteredPeople": 250,
-    "prioritySum": 1560,
+    "prioritySum": 1760,
     "verified": true,
     "latitude": -30.0390535,
     "longitude": -51.1474315,
     "actived": true,
     "category": "Shelter",
     "createdAt": "2024-05-06T03:04:57.286Z",
-    "updatedAt": "2024-05-17T18:49:00.896Z",
+    "updatedAt": "2024-05-19T04:14:50.696Z",
     "shelterSupplies": [
+      {
+        "shelterId": "98c04b11-66df-400c-bc31-cfc0c1ad52f3",
+        "supplyId": "d034ab5c-92ef-4847-9014-b5114b17cc66",
+        "priority": 100,
+        "quantity": 0,
+        "createdAt": "2024-05-19T04:13:47.723Z",
+        "updatedAt": null,
+        "supply": {
+          "id": "d034ab5c-92ef-4847-9014-b5114b17cc66",
+          "supplyCategoryId": "5c9b6767-5310-461b-977b-906fe16370ae",
+          "name": "Fraldas",
+          "createdAt": "2024-05-10T23:30:56.968Z",
+          "updatedAt": null
+        },
+        "tags": [
+          "NeedDonations"
+        ]
+      },
       {
         "shelterId": "98c04b11-66df-400c-bc31-cfc0c1ad52f3",
         "supplyId": "655b4563-e2a3-4d27-a2fb-cf8fad8c91e4",
@@ -56530,24 +56566,6 @@
           "supplyCategoryId": "bf8b5e09-544f-4eff-9bb7-6220aaa34a85",
           "name": "Blusão Feminino Gg",
           "createdAt": "2024-05-17T18:47:29.699Z",
-          "updatedAt": null
-        },
-        "tags": [
-          "NeedDonations"
-        ]
-      },
-      {
-        "shelterId": "98c04b11-66df-400c-bc31-cfc0c1ad52f3",
-        "supplyId": "21da2418-e978-41cb-90a8-d7e677b4d577",
-        "priority": 100,
-        "quantity": 0,
-        "createdAt": "2024-05-17T18:44:35.905Z",
-        "updatedAt": null,
-        "supply": {
-          "id": "21da2418-e978-41cb-90a8-d7e677b4d577",
-          "supplyCategoryId": "bf8b5e09-544f-4eff-9bb7-6220aaa34a85",
-          "name": "Cueca",
-          "createdAt": "2024-05-10T15:27:40.241Z",
           "updatedAt": null
         },
         "tags": [

@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 import json
 
-PAGE_SIZE = 10
+PAGE_SIZE = 25
 COLORS = 1
 LANGUAGE = "pt-br"
 
@@ -17,6 +17,7 @@ dict_columns = {
     'Yes': {'pt-br':'Sim', 'en':'Yes'},
     'No': {'pt-br':'Não', 'en':'No'},
     'All': {'pt-br':'Todos', 'en':'All'},
+    'Pet': {'pt-br':'Animais', 'en':'Pet'},
     'AllCities': {'pt-br':'Todas', 'en':'All'},
     'City': {'pt-br':'Cidade', 'en':'City'},
     'Shelter': {'pt-br':'Abrigo', 'en':'Shelter'},
@@ -25,8 +26,8 @@ dict_columns = {
     'Address': {'pt-br':'Endereço', 'en':'Address'},
     'Capacity': {'pt-br':'Capacidade', 'en':'Capacity'},
     'Availability': {'pt-br':'Disponibilidade', 'en':'Availability'},
-    'VerificationStatus': {'pt-br':'Status de Verificação', 'en':'Verification Status'},
-    'PetFriendly': {'pt-br':'Pet Friendly', 'en':'Pet Friendly'},
+    'VerificationStatus': {'pt-br':'Verificado', 'en':'Verified'},
+    'PetFriendly': {'pt-br':'Aceita Animais', 'en':'Pet Friendly'},
     'AmountOfShelters': {'pt-br':'Número de Abrigos', 'en':'Amount Of Shelters'},
     'AmountOfPeopleSheltered': {'pt-br':'Número de Pessoas Abrigadas', 'en':'Amount Of People Sheltered'},
     'SheltersVerified': {'pt-br':'Verificados', 'en':'Verified'},
@@ -61,8 +62,6 @@ def get_formated_data():
     # link Column to create hyperlink
     df['link'] = df.apply(create_link, axis=1)
 
-    df['verified_status'] = df['verified'].apply(lambda x: 'Verificado' if x else 'Não Verificado')
-
     # TODO: Create new visual using the supplies
     df['shelter_supplies_str'] = df['shelterSupplies'].apply(lambda x: ', '.join([supply['supply']['name'] for supply in x]))
     df.drop(columns=['shelterSupplies'], inplace=True)
@@ -86,6 +85,10 @@ def get_formated_data():
     df['city_grouped'] = df['city'].fillna('Desconhecida').apply(lambda x: x if city_counts[x] >= 0.05 else 'Outras Cidades')
 
     df.drop(['pix','street','neighbourhood','streetNumber','prioritySum','zipCode','createdAt'], axis=1, inplace=True)
+    # Add column 'pet_icon' based on 'petFriendly' column
+    df['pet_icon'] = df['petFriendly'].apply(lambda x: '🐾' if x else '')
+    # Add column 'verification_icon' based on 'verified' column
+    df['verification_icon'] = df['verified'].apply(lambda x: '✔️' if x else '❌')
 
     df.rename(columns=dict_columns2, inplace=True)
     return df
@@ -129,7 +132,7 @@ app.layout = html.Div([
                 clearable=True,
                 style={'color': 'black'}
             )
-        ], style={'width': '22%', 'display': 'inline-block', 'margin-right': '2%'}), 
+        ], style={'width': '30%', 'display': 'inline-block', 'margin-right': '1%'}), 
         
         html.Div([
             html.Label(f"{dict_columns.get('Availability').get(LANGUAGE)}:", style={'color': fontColor}),
@@ -147,25 +150,25 @@ app.layout = html.Div([
                 clearable=True,
                 style={'color': 'black'}
             )
-        ], style={'width': '22%', 'display': 'inline-block', 'margin-right': '2%'}),
+        ], style={'width': '30%', 'display': 'inline-block', 'margin-right': '1%'}),
         
         html.Div([
             html.Label(f"{dict_columns.get('VerificationStatus').get(LANGUAGE)}:", style={'color': fontColor}),
             dcc.Dropdown(
                 id='verification-filter',
                 options=[
-                    {'label': 'Verificado', 'value': 'Verificado'},
-                    {'label': 'Não Verificado', 'value': 'Não Verificado'},
+                    {'label': 'Sim', 'value': True},
+                    {'label': 'Não', 'value': False},
                     {'label': 'Todos', 'value': 'Todos'}
                 ],
                 value='Todos',
                 clearable=False,
                 style={'color': 'black'}
             )
-        ], style={'width': '22%', 'display': 'inline-block', 'margin-right': '2%'}),
+        ], style={'width': '13%', 'display': 'inline-block', 'margin-right': '1%'}),
         
         html.Div([
-            html.Label(f"{dict_columns.get('PetFriendly').get(LANGUAGE)}:", style={'color': fontColor}),
+            html.Label(f"{dict_columns.get('Pet').get(LANGUAGE)}:", style={'color': fontColor}),
             dcc.Dropdown(
                 id='pet-filter',
                 options=[
@@ -177,8 +180,8 @@ app.layout = html.Div([
                 clearable=False,
                 style={'color': 'black'}
             )
-        ], style={'width': '22%', 'display': 'inline-block', 'margin-right': '2%'}),
-    ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px','textAlign': 'center'}),
+        ], style={'width': '13%', 'display': 'inline-block', 'margin-right': '1%'}),
+    ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '5px', 'borderRadius': '5px','textAlign': 'center'}),
     # Map, Pie, Table
     html.Div([
         # Map
@@ -236,7 +239,7 @@ def update_data(search, city, verification, pet, availability):
         filtered_df = filtered_df[filtered_df['petFriendly'] == pet]
     
     if verification != 'Todos':
-        filtered_df = filtered_df[filtered_df['verified_status'] == verification]
+        filtered_df = filtered_df[filtered_df['verified'] == verification]
 
     if 'Todos' not in availability and len(availability) > 0:
         filtered_df = filtered_df[filtered_df['availability'].isin(availability)]
@@ -299,6 +302,8 @@ def update_data(search, city, verification, pet, availability):
             {"name": f"{dict_columns.get('City').get(LANGUAGE)}", "id": "city"},
             {"name": f"{dict_columns.get('Capacity').get(LANGUAGE)}", "id": "capacity"},
             {"name": f"{dict_columns.get('People').get(LANGUAGE)}", "id": "shelteredPeople"},
+            {"name": f"{dict_columns.get('Pet').get(LANGUAGE)}", "id": "pet_icon"} ,
+            {"name": f"{dict_columns.get('VerificationStatus').get(LANGUAGE)}", "id": "verification_icon"},
             {"name": f"{dict_columns.get('UpdatedAt').get(LANGUAGE)}", "id": "updatedAt"},
     ],
     data=filtered_df.to_dict('records'),
@@ -316,10 +321,12 @@ def update_data(search, city, verification, pet, availability):
         },
     style_cell_conditional=[
             {'if': {'column_id': 'link'}, 'width': '25%'},
-            {'if': {'column_id': 'address'}, 'width': '30%'},
+            {'if': {'column_id': 'address'}, 'width': '25%'},
             {'if': {'column_id': 'city'}, 'width': '5%'},
             {'if': {'column_id': 'capacity'}, 'width': '3%'},
             {'if': {'column_id': 'shelteredPeople'}, 'width': '3%'},
+            {'if': {'column_id': 'pet_icon'}, 'width': '2%'},
+            {'if': {'column_id': 'verification_icon'}, 'width': '3%'},
             {'if': {'column_id': 'updatedAt'}, 'width': '4%'}, 
         ],
     style_data_conditional=[
@@ -357,6 +364,6 @@ def update_data(search, city, verification, pet, availability):
     return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table, city_options
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 else:
     server = app.server
