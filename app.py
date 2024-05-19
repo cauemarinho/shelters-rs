@@ -113,7 +113,7 @@ app.layout = html.Div([
             id='search-filter',
             type='text',
             placeholder=f"{dict_columns.get('Search').get(LANGUAGE)}", 
-            style={'width': '40%', 'display': 'inline-block', 'padding': '6px','margin-right': '2%','textAlign': 'center'}
+            style={'width': '50%', 'display': 'inline-block', 'padding': '6px','margin-right': '2%','textAlign': 'center'}
         )
     ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px','textAlign': 'center'}),
     # Filters
