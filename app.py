@@ -101,6 +101,7 @@ df = get_formated_data()
 city_options=data_cities(df)
 
 app = dash.Dash(__name__)
+server = app.server
 
 app.layout = html.Div([
     html.H1(f"{dict_columns.get('Shelter').get(language)}s - Rio Grande do Sul", style={'color': fontColor,'width': '100%', 'display': 'inline-block', 'margin-right': '2%','textAlign': 'center'}),
@@ -356,3 +357,5 @@ def update_data(search, city, verification, pet, availability):
 
 if __name__ == '__main__':
     app.run_server(debug=False)
+else:
+    server = app.server
