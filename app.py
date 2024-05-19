@@ -270,8 +270,8 @@ def update_data(search, city, verification, pet, availability):
             'Consultar': 'blue'
         },
         zoom=9,
-        height=400,
-        width=600
+        # height=400,
+        # width=600
     )
     fig.update_layout(mapbox_style=map_style)
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor=backgroundColor)
@@ -359,6 +359,6 @@ def update_data(search, city, verification, pet, availability):
     return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table, city_options
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 else:
     server = app.server
