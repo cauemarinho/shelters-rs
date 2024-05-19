@@ -105,17 +105,18 @@ app = dash.Dash(__name__)
 server = app.server
 
 app.layout = html.Div([
+    # Title
     html.H1(f"{dict_columns.get('Shelter').get(LANGUAGE)}s - Rio Grande do Sul", style={'color': fontColor,'width': '100%', 'display': 'inline-block', 'margin-right': '2%','textAlign': 'center'}),
-    
+    # Search
     html.Div([
         dcc.Input(
             id='search-filter',
             type='text',
             placeholder=f"{dict_columns.get('Search').get(LANGUAGE)}", 
-            style={'width': '30%', 'display': 'inline-block', 'padding': '6px','margin-right': '2%','textAlign': 'center'}
+            style={'width': '40%', 'display': 'inline-block', 'padding': '6px','margin-right': '2%','textAlign': 'center'}
         )
     ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px','textAlign': 'center'}),
-    
+    # Filters
     html.Div([
         
         html.Div([
@@ -128,7 +129,7 @@ app.layout = html.Div([
                 clearable=True,
                 style={'color': 'black'}
             )
-        ], style={'width': '20%', 'display': 'inline-block', 'margin-right': '2%'}), 
+        ], style={'width': '22%', 'display': 'inline-block', 'margin-right': '2%'}), 
         
         html.Div([
             html.Label(f"{dict_columns.get('Availability').get(LANGUAGE)}:", style={'color': fontColor}),
@@ -146,7 +147,7 @@ app.layout = html.Div([
                 clearable=True,
                 style={'color': 'black'}
             )
-        ], style={'width': '20%', 'display': 'inline-block', 'margin-right': '2%'}),
+        ], style={'width': '22%', 'display': 'inline-block', 'margin-right': '2%'}),
         
         html.Div([
             html.Label(f"{dict_columns.get('VerificationStatus').get(LANGUAGE)}:", style={'color': fontColor}),
@@ -161,7 +162,7 @@ app.layout = html.Div([
                 clearable=False,
                 style={'color': 'black'}
             )
-        ], style={'width': '20%', 'display': 'inline-block', 'margin-right': '2%'}),
+        ], style={'width': '22%', 'display': 'inline-block', 'margin-right': '2%'}),
         
         html.Div([
             html.Label(f"{dict_columns.get('PetFriendly').get(LANGUAGE)}:", style={'color': fontColor}),
@@ -176,32 +177,29 @@ app.layout = html.Div([
                 clearable=False,
                 style={'color': 'black'}
             )
-        ], style={'width': '20%', 'display': 'inline-block', 'margin-right': '2%'}),
+        ], style={'width': '22%', 'display': 'inline-block', 'margin-right': '2%'}),
     ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px','textAlign': 'center'}),
-
+    # Map, Pie, Table
     html.Div([
         # Map
         html.Div([
             dcc.Graph(id='map'),
-        ], style={'backgroundColor': backgroundColor,'width': '40%', 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
+        ], style={'width': '40%','backgroundColor': backgroundColor, 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
         # Pie
         html.Div([
             dcc.Graph(id='city-distribution'),
         ], style={'width': '25%', 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
+        # Text
         html.Div([
-            
             html.Div(id='num-shelters-div', className='info-div', style={'textAlign': 'center'}),
-            
             html.Div(id='verified-shelters-div', className='info-div', style={'textAlign': 'center'}),
-            
             html.Div(id='pet-friendly-shelters-div', className='info-div', style={'textAlign': 'center'}),
-            
             html.Div(id='total-people-div', className='info-div', style={'textAlign': 'center'}),
-        ], style={'backgroundColor': backgroundColor,'width': '25%', 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
+        ], style={'width': '25%', 'backgroundColor': backgroundColor, 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
     ], className='pie-container', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px'}),
     # Table
     html.Div(id='shelter-table-div')
-], style={'backgroundColor': backgroundColor, 'padding': '20px', 'minHeight': '100vh','textAlign': 'center'})
+], style={'backgroundColor': backgroundColor})
 
 @app.callback(
     [Output('map', 'figure'),
@@ -359,6 +357,6 @@ def update_data(search, city, verification, pet, availability):
     return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table, city_options
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 else:
     server = app.server
