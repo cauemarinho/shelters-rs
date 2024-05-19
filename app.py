@@ -4,9 +4,10 @@ import pandas as pd
 import plotly.express as px
 import json
 
-get_config = 1
-language = "pt-br"
-# Application colors
+PAGE_SIZE = 10
+COLORS = 1
+LANGUAGE = "pt-br"
+
 dict_config = {
     1: {'backgroundColor' : 'black','fontColor' : 'white','map_style' : 'carto-darkmatter'},
     2: {'backgroundColor' : 'white','fontColor' : 'black','map_style' : 'carto-positron'}
@@ -38,9 +39,9 @@ dict_columns2 = {
     'link':'link',  
     } 
 
-backgroundColor = dict_config.get(get_config).get("backgroundColor")
-fontColor = dict_config.get(get_config).get("fontColor")
-map_style = dict_config.get(get_config).get("map_style")
+backgroundColor = dict_config.get(COLORS).get("backgroundColor")
+fontColor = dict_config.get(COLORS).get("fontColor")
+map_style = dict_config.get(COLORS).get("map_style")
 
 def get_data():
     with open('shelters.json', 'r') as file:
@@ -104,13 +105,13 @@ app = dash.Dash(__name__)
 server = app.server
 
 app.layout = html.Div([
-    html.H1(f"{dict_columns.get('Shelter').get(language)}s - Rio Grande do Sul", style={'color': fontColor,'width': '100%', 'display': 'inline-block', 'margin-right': '2%','textAlign': 'center'}),
+    html.H1(f"{dict_columns.get('Shelter').get(LANGUAGE)}s - Rio Grande do Sul", style={'color': fontColor,'width': '100%', 'display': 'inline-block', 'margin-right': '2%','textAlign': 'center'}),
     
     html.Div([
         dcc.Input(
             id='search-filter',
             type='text',
-            placeholder=f"{dict_columns.get('Search').get(language)}", 
+            placeholder=f"{dict_columns.get('Search').get(LANGUAGE)}", 
             style={'width': '30%', 'display': 'inline-block', 'padding': '6px','margin-right': '2%','textAlign': 'center'}
         )
     ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px','textAlign': 'center'}),
@@ -118,7 +119,7 @@ app.layout = html.Div([
     html.Div([
         
         html.Div([
-            html.Label(f"{dict_columns.get('City').get(language)}:", style={'color': fontColor}),
+            html.Label(f"{dict_columns.get('City').get(LANGUAGE)}:", style={'color': fontColor}),
             dcc.Dropdown(
                 id='city-filter',
                 options=city_options,
@@ -130,7 +131,7 @@ app.layout = html.Div([
         ], style={'width': '20%', 'display': 'inline-block', 'margin-right': '2%'}), 
         
         html.Div([
-            html.Label(f"{dict_columns.get('Availability').get(language)}:", style={'color': fontColor}),
+            html.Label(f"{dict_columns.get('Availability').get(LANGUAGE)}:", style={'color': fontColor}),
             dcc.Dropdown(
                 id='availability-filter',
                 options=[
@@ -148,7 +149,7 @@ app.layout = html.Div([
         ], style={'width': '20%', 'display': 'inline-block', 'margin-right': '2%'}),
         
         html.Div([
-            html.Label(f"{dict_columns.get('VerificationStatus').get(language)}:", style={'color': fontColor}),
+            html.Label(f"{dict_columns.get('VerificationStatus').get(LANGUAGE)}:", style={'color': fontColor}),
             dcc.Dropdown(
                 id='verification-filter',
                 options=[
@@ -163,7 +164,7 @@ app.layout = html.Div([
         ], style={'width': '20%', 'display': 'inline-block', 'margin-right': '2%'}),
         
         html.Div([
-            html.Label(f"{dict_columns.get('PetFriendly').get(language)}:", style={'color': fontColor}),
+            html.Label(f"{dict_columns.get('PetFriendly').get(LANGUAGE)}:", style={'color': fontColor}),
             dcc.Dropdown(
                 id='pet-filter',
                 options=[
@@ -288,74 +289,76 @@ def update_data(search, city, verification, pet, availability):
         ) 
     ) 
     
-    num_shelters = html.P(f"{dict_columns.get('AmountOfShelters').get(language)}: {len(filtered_df)}", style={'color': fontColor, 'fontWeight': 'bold'})
-    total_people = html.P(f"{dict_columns.get('AmountOfPeopleSheltered').get(language)}: {int(filtered_df['shelteredPeople'].sum())}", style={'color': fontColor,'fontWeight': 'bold'})
-    verified_shelters = html.P(f"{dict_columns.get('SheltersVerified').get(language)}: {len(filtered_df[filtered_df['verified']])} | {dict_columns.get('SheltersNotVerified').get(language)}: {len(filtered_df[~filtered_df['verified']])}", style={'color': fontColor,'fontWeight': 'bold'})
-    pet_friendly_shelters = html.P(f"{dict_columns.get('PetFriendly').get(language)}: {filtered_df['petFriendly'].sum()}", style={'color': fontColor,'fontWeight': 'bold'})
+    num_shelters = html.P(f"{dict_columns.get('AmountOfShelters').get(LANGUAGE)}: {len(filtered_df)}", style={'color': fontColor, 'fontWeight': 'bold'})
+    total_people = html.P(f"{dict_columns.get('AmountOfPeopleSheltered').get(LANGUAGE)}: {int(filtered_df['shelteredPeople'].sum())}", style={'color': fontColor,'fontWeight': 'bold'})
+    verified_shelters = html.P(f"{dict_columns.get('SheltersVerified').get(LANGUAGE)}: {len(filtered_df[filtered_df['verified']])} | {dict_columns.get('SheltersNotVerified').get(LANGUAGE)}: {len(filtered_df[~filtered_df['verified']])}", style={'color': fontColor,'fontWeight': 'bold'})
+    pet_friendly_shelters = html.P(f"{dict_columns.get('PetFriendly').get(LANGUAGE)}: {filtered_df['petFriendly'].sum()}", style={'color': fontColor,'fontWeight': 'bold'})
 
     shelter_table = dash_table.DataTable(
-        columns=[
-                {"name": f"{dict_columns.get('Shelter').get(language)}", "id": "link", "presentation": "markdown"},  # Defina a apresentação como "markdown" para interpretar o conteúdo como Markdown
-                {"name": f"{dict_columns.get('Address').get(language)}", "id": "address"},
-                {"name": f"{dict_columns.get('City').get(language)}", "id": "city"},
-                {"name": f"{dict_columns.get('Capacity').get(language)}", "id": "capacity"},
-                {"name": f"{dict_columns.get('People').get(language)}", "id": "shelteredPeople"},
-                {"name": f"{dict_columns.get('UpdatedAt').get(language)}", "id": "updatedAt"},
+    columns=[
+            {"name": f"{dict_columns.get('Shelter').get(LANGUAGE)}", "id": "link", "presentation": "markdown"},  # Defina a apresentação como "markdown" para interpretar o conteúdo como Markdown
+            {"name": f"{dict_columns.get('Address').get(LANGUAGE)}", "id": "address"},
+            {"name": f"{dict_columns.get('City').get(LANGUAGE)}", "id": "city"},
+            {"name": f"{dict_columns.get('Capacity').get(LANGUAGE)}", "id": "capacity"},
+            {"name": f"{dict_columns.get('People').get(LANGUAGE)}", "id": "shelteredPeople"},
+            {"name": f"{dict_columns.get('UpdatedAt').get(LANGUAGE)}", "id": "updatedAt"},
+    ],
+    data=filtered_df.to_dict('records'),
+    sort_action='native',
+    page_size=PAGE_SIZE,
+    page_action='native',
+    style_table={'overflowX': 'auto', 'width': '100%'},
+    style_header={'color': fontColor, 'backgroundColor': backgroundColor, 'textAlign': 'left', 'fontSize': '15px'},
+    style_data={'whiteSpace': 'normal', 'textOverflow': 'ellipsis', 'overflow': 'hidden'},
+    style_cell={
+            'textAlign': 'left',
+            'whiteSpace': 'normal',
+            'overflow': 'hidden',
+            'textOverflow': 'ellipsis',
+        },
+    style_cell_conditional=[
+            {'if': {'column_id': 'link'}, 'width': '25%'},
+            {'if': {'column_id': 'address'}, 'width': '30%'},
+            {'if': {'column_id': 'city'}, 'width': '5%'},
+            {'if': {'column_id': 'capacity'}, 'width': '3%'},
+            {'if': {'column_id': 'shelteredPeople'}, 'width': '3%'},
+            {'if': {'column_id': 'updatedAt'}, 'width': '4%'}, 
         ],
-        data=filtered_df.to_dict('records'),
-        sort_action='native',
-        style_table={'overflowX': 'auto', 'width': '100%'},
-        style_header={'color': fontColor, 'backgroundColor': backgroundColor, 'textAlign': 'left', 'fontSize': '15px'},
-        style_data={'whiteSpace': 'normal', 'textOverflow': 'ellipsis', 'overflow': 'hidden'},
-        style_cell={
-                'textAlign': 'left',
-                'whiteSpace': 'normal',
-                'overflow': 'hidden',
-                'textOverflow': 'ellipsis',
+    style_data_conditional=[
+        {
+            'if': {
+                'filter_query': '{availability} = "Lotado"',  
             },
-        style_cell_conditional=[
-                {'if': {'column_id': 'link'}, 'width': '25%'},
-                {'if': {'column_id': 'address'}, 'width': '30%'},
-                {'if': {'column_id': 'city'}, 'width': '5%'},
-                {'if': {'column_id': 'capacity'}, 'width': '3%'},
-                {'if': {'column_id': 'shelteredPeople'}, 'width': '3%'},
-                {'if': {'column_id': 'updatedAt'}, 'width': '4%'}, 
-            ],
-        style_data_conditional=[
-            {
-                'if': {
-                    'filter_query': '{availability} = "Lotado"',  
-                },
-                'backgroundColor': '#FF4136',
-                'color': 'black'
+            'backgroundColor': '#FF4136',
+            'color': 'black'
+        },
+        {
+            'if': {
+                'filter_query': '{availability} = "Disponível"',
             },
-            {
-                'if': {
-                    'filter_query': '{availability} = "Disponível"',
-                },
-                'backgroundColor': '#2ECC40',
-                'color': 'black'
+            'backgroundColor': '#2ECC40',
+            'color': 'black'
+        },
+        {
+            'if': {
+                'filter_query': '{availability} = "Cheio"',
             },
-            {
-                'if': {
-                    'filter_query': '{availability} = "Cheio"',
-                },
-                'backgroundColor': '#FF851B',
-                'color': 'black'
+            'backgroundColor': '#FF851B',
+            'color': 'black'
+        },
+        {
+            'if': {
+                'filter_query': '{availability} = "Consultar"',
             },
-            {
-                'if': {
-                    'filter_query': '{availability} = "Consultar"',
-                },
-                'backgroundColor': '#00BFFF',
-                'color': 'black'
-            },
-        ],
+            'backgroundColor': '#00BFFF',
+            'color': 'black'
+        },
+    ],
     )
 
     return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table, city_options
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 else:
     server = app.server
