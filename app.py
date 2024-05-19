@@ -1,12 +1,11 @@
 import dash
-from dash import dcc, html, Input, Output, dash_table
+from dash import dcc, html, Input, Output, dash_table, State
 import pandas as pd
 import plotly.express as px
 import json
 
 PAGE_SIZE = 25
 COLORS = 1
-LANGUAGE = "pt-br"
 
 dict_config = {
     1: {'backgroundColor': 'black', 'fontColor': 'white', 'map_style': 'carto-darkmatter'},
@@ -111,22 +110,31 @@ app = dash.Dash(__name__)
 server = app.server
 
 app.layout = html.Div([
-    # Title
-    html.H1(f"{dict_columns.get('Shelter').get(LANGUAGE)}s - Rio Grande do Sul", style={'color': fontColor,'width': '100%', 'display': 'inline-block', 'margin-right': '2%','textAlign': 'center'}),
+    # Language switcher
+    html.Div([
+        html.A([
+            html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197386.png', style={'cursor': 'pointer', 'margin': '22px', 'width': '25px', 'height': '25px', 'margin-left': '2%'}),
+        ], title="brazil icons", id='pt-br', n_clicks=0),  
+        html.A([
+            html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197484.png', style={'cursor': 'pointer', 'margin': '22px', 'width': '25px', 'height': '25px'}),
+        ], title="usa icons", id='en', n_clicks=0),
+    ]),
+       # Title
+    html.H1(id='title', style={'color': fontColor, 'width': '100%',  'margin': '0px', 'textAlign': 'center'}),
     # Search
     html.Div([
         dcc.Input(
             id='search-filter',
             type='text',
-            placeholder=f"{dict_columns.get('Search').get(LANGUAGE)}", 
-            style={'width': '50%', 'display': 'inline-block', 'padding': '6px','margin-right': '2%','textAlign': 'center'}
+            placeholder=f"{dict_columns.get('Search').get('pt-br')}", 
+            style={'width': '50%', 'display': 'inline-block', 'padding': '6px', 'margin-right': '2%', 'textAlign': 'center'}
         )
-    ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px','textAlign': 'center'}),
+    ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
     # Filters
     html.Div([
         
         html.Div([
-            html.Label(f"{dict_columns.get('City').get(LANGUAGE)}:", style={'color': fontColor}),
+            html.Label(id='city-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='city-filter',
                 options=city_options,
@@ -138,7 +146,7 @@ app.layout = html.Div([
         ], style={'width': '30%', 'display': 'inline-block', 'margin-right': '1%'}), 
         
         html.Div([
-            html.Label(f"{dict_columns.get('Availability').get(LANGUAGE)}:", style={'color': fontColor}),
+            html.Label(id='availability-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='availability-filter',
                 options=[
@@ -148,7 +156,7 @@ app.layout = html.Div([
                     {'label': 'Cheio', 'value': 'Cheio'},
                     {'label': 'Lotado', 'value': 'Lotado'},       
                 ],
-                value=['Disponível','Consultar'],
+                value=['Disponível', 'Consultar'],
                 multi=True,
                 clearable=True,
                 style={'color': 'black'}
@@ -156,7 +164,7 @@ app.layout = html.Div([
         ], style={'width': '30%', 'display': 'inline-block', 'margin-right': '1%'}),
         
         html.Div([
-            html.Label(f"{dict_columns.get('VerificationStatus').get(LANGUAGE)}:", style={'color': fontColor}),
+            html.Label(id='verification-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='verification-filter',
                 options=[
@@ -171,7 +179,7 @@ app.layout = html.Div([
         ], style={'width': '13%', 'display': 'inline-block', 'margin-right': '1%'}),
         
         html.Div([
-            html.Label(f"{dict_columns.get('Pet').get(LANGUAGE)}:", style={'color': fontColor}),
+            html.Label(id='pet-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='pet-filter',
                 options=[
@@ -184,13 +192,13 @@ app.layout = html.Div([
                 style={'color': 'black'}
             )
         ], style={'width': '13%', 'display': 'inline-block', 'margin-right': '1%'}),
-    ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '5px', 'borderRadius': '5px','textAlign': 'center'}),
+    ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '5px', 'borderRadius': '5px', 'textAlign': 'center'}),
     # Map, Pie, Table
     html.Div([
         # Map
         html.Div([
             dcc.Graph(id='map'),
-        ], style={'width': '40%','backgroundColor': backgroundColor, 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
+        ], style={'width': '40%', 'backgroundColor': backgroundColor, 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
         # Pie
         html.Div([
             dcc.Graph(id='city-distribution'),
@@ -208,25 +216,59 @@ app.layout = html.Div([
 ], style={'backgroundColor': backgroundColor})
 
 @app.callback(
+    [Output('title', 'children'),
+     Output('search-filter', 'placeholder'),
+     Output('city-label', 'children'),
+     Output('availability-label', 'children'),
+     Output('verification-label', 'children'),
+     Output('pet-label', 'children'),
+     Output('city-filter', 'options')],
+    [Input('pt-br', 'n_clicks'),
+     Input('en', 'n_clicks')],
+    [State('search-filter', 'placeholder'),
+     State('city-label', 'children'),
+     State('availability-label', 'children'),
+     State('verification-label', 'children'),
+     State('pet-label', 'children')]
+)
+def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availability_label, verification_label, pet_label):
+    language = 'pt-br'
+    if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
+        language = 'en'
+    
+    city_options = data_cities(df)
+    
+    return (f"{dict_columns.get('Shelter').get(language)}s - Rio Grande do Sul",
+            dict_columns.get('Search').get(language),
+            dict_columns.get('City').get(language),
+            dict_columns.get('Availability').get(language),
+            dict_columns.get('VerificationStatus').get(language),
+            dict_columns.get('Pet').get(language),
+            city_options)
+
+@app.callback(
     [Output('map', 'figure'),
      Output('city-distribution', 'figure'),
      Output('num-shelters-div', 'children'),
      Output('total-people-div', 'children'),
      Output('verified-shelters-div', 'children'),
      Output('pet-friendly-shelters-div', 'children'),
-     Output('shelter-table-div', 'children'),
-     Output('city-filter', 'options')],
+     Output('shelter-table-div', 'children')],
     [Input('search-filter', 'value'),
      Input('city-filter', 'value'),
      Input('verification-filter', 'value'),
      Input('pet-filter', 'value'),
-     Input('availability-filter', 'value')
-     ]
+     Input('availability-filter', 'value'),
+     Input('pt-br', 'n_clicks'),
+     Input('en', 'n_clicks')]
 )
-def update_data(search, city, verification, pet, availability):
-    filtered_df = get_formated_data()
-    city_options = data_cities(filtered_df)
+def update_data(search, city, verification, pet, availability, pt_clicks, en_clicks):
+    language = 'pt-br'
+    if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
+        language = 'en'
 
+    filtered_df = get_formated_data()
+    
     if search:
         search = search.lower()
         filtered_df = filtered_df[
@@ -291,18 +333,18 @@ def update_data(search, city, verification, pet, availability):
         ) 
     ) 
     
-    num_shelters = html.P(f"{dict_columns.get('AmountOfShelters').get(LANGUAGE)}: {len(filtered_df)}", style={'color': fontColor, 'fontWeight': 'bold'})
-    total_people = html.P(f"{dict_columns.get('AmountOfPeopleSheltered').get(LANGUAGE)}: {int(filtered_df['shelteredPeople'].sum())}", style={'color': fontColor,'fontWeight': 'bold'})
-    verified_shelters = html.P(f"{dict_columns.get('SheltersVerified').get(LANGUAGE)}: {len(filtered_df[filtered_df['verified']])} | {dict_columns.get('SheltersNotVerified').get(LANGUAGE)}: {len(filtered_df[~filtered_df['verified']])}", style={'color': fontColor,'fontWeight': 'bold'})
-    pet_friendly_shelters = html.P(f"{dict_columns.get('PetFriendly').get(LANGUAGE)}: {filtered_df['petFriendly'].sum()}", style={'color': fontColor,'fontWeight': 'bold'})
+    num_shelters = html.P(f"{dict_columns.get('AmountOfShelters').get(language)}: {len(filtered_df)}", style={'color': fontColor, 'fontWeight': 'bold'})
+    total_people = html.P(f"{dict_columns.get('AmountOfPeopleSheltered').get(language)}: {int(filtered_df['shelteredPeople'].sum())}", style={'color': fontColor, 'fontWeight': 'bold'})
+    verified_shelters = html.P(f"{dict_columns.get('SheltersVerified').get(language)}: {len(filtered_df[filtered_df['verified']])} | {dict_columns.get('SheltersNotVerified').get(language)}: {len(filtered_df[~filtered_df['verified']])}", style={'color': fontColor, 'fontWeight': 'bold'})
+    pet_friendly_shelters = html.P(f"{dict_columns.get('PetFriendly').get(language)}: {filtered_df['petFriendly'].sum()}", style={'color': fontColor, 'fontWeight': 'bold'})
 
     shelter_table = dash_table.DataTable(
         columns=[
-            {"name": f"{dict_columns.get('Shelter').get(LANGUAGE)}", "id": "link", "presentation": "markdown"},
-            {"name": f"{dict_columns.get('Address').get(LANGUAGE)}", "id": "address"},
-            {"name": f"{dict_columns.get('City').get(LANGUAGE)}", "id": "city"},
-            {"name": f"{dict_columns.get('Capacity').get(LANGUAGE)}", "id": "capacity_info"},
-            {"name": f"{dict_columns.get('UpdatedAt').get(LANGUAGE)}", "id": "updatedAt"},
+            {"name": f"{dict_columns.get('Shelter').get(language)}", "id": "link", "presentation": "markdown"},
+            {"name": f"{dict_columns.get('Address').get(language)}", "id": "address"},
+            {"name": f"{dict_columns.get('City').get(language)}", "id": "city"},
+            {"name": f"{dict_columns.get('Capacity').get(language)}", "id": "capacity_info"},
+            {"name": f"{dict_columns.get('UpdatedAt').get(language)}", "id": "updatedAt"},
         ],
         data=filtered_df.to_dict('records'),
         sort_action='native',
@@ -356,9 +398,9 @@ def update_data(search, city, verification, pet, availability):
         ],
     )
 
-    return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table, city_options
+    return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 else:
     server = app.server
