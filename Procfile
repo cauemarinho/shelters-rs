@@ -1,1 +1,1 @@
-web: gunicorn app:server
+web: FLASK_ENV=production gunicorn app:server

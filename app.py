@@ -1,3 +1,4 @@
+import os
 import dash
 from dash import dcc, html, Input, Output, dash_table, State
 import dash_bootstrap_components as dbc
@@ -14,7 +15,7 @@ dict_config = {
 }
 
 dict_columns = {
-    'Yes': {'pt-br': 'Sim', 'en': 'Yes'},
+    'Hide': {'pt-br': 'Esconder', 'en': 'Hide'},
     'Yes': {'pt-br': 'Sim', 'en': 'Yes'},
     'No': {'pt-br': 'Não', 'en': 'No'},
     'All': {'pt-br': 'Todos', 'en': 'All'},
@@ -194,21 +195,21 @@ app.layout = dbc.Container([
     #Graphs
     dbc.Row([
        dbc.Col([
-            dbc.Button("Hide", id="hide-info", className="mb-2"),
+            dbc.Button(id="hide-info", className="mb-2"),
             dbc.Row(dbc.Col(id='num-shelters-div')),
             dbc.Row(dbc.Col(id='verified-shelters-div')),
             dbc.Row(dbc.Col(id='not-verified-shelters-div')),
             dbc.Row(dbc.Col(id='pet-friendly-shelters-div')),
             dbc.Row(dbc.Col(id='total-people-div')),
-        ], xs=12, sm=12, md=6, lg=3, 
+        ], xs=12, sm=12, md=6, lg=3, className="mb-3"
         #className="d-flex flex-column align-items-center justify-content-center"
         ),
         dbc.Col([
-            dbc.Button("Hide", id="hide-map", className="mb-2"),
+            dbc.Button(id="hide-map", className="mb-2"),
             dcc.Graph(id='map', style={'display': 'block'})
         ], xs=12, sm=12, md=6, lg=6, className="mb-3"),
         dbc.Col([
-            dbc.Button("Hide", id="hide-city-distribution", className="mb-2"),
+            dbc.Button(id="hide-city-distribution", className="mb-2"),
             dcc.Graph(id='city-distribution', style={'display': 'block'})
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
         ], 
@@ -266,7 +267,6 @@ def hide_city_distribution(n_clicks, current_style):
         return {'display': 'none'}
     return {'display': 'block'}
 
-
 @app.callback(
     [Output('title', 'children'),
      Output('search-filter', 'placeholder'),
@@ -274,7 +274,10 @@ def hide_city_distribution(n_clicks, current_style):
      Output('availability-label', 'children'),
      Output('verification-label', 'children'),
      Output('pet-label', 'children'),
-     Output('city-filter', 'options')],
+     Output('city-filter', 'options'),
+     Output('hide-info', 'children'),
+     Output('hide-map', 'children'),
+     Output('hide-city-distribution', 'children')],
     [Input('pt-br', 'n_clicks'),
      Input('en', 'n_clicks')],
     [State('search-filter', 'placeholder'),
@@ -296,7 +299,10 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
             dict_columns.get('Availability').get(language)+':',
             dict_columns.get('VerificationStatus').get(language)+':',
             dict_columns.get('Pet').get(language)+':',
-            city_options)
+            city_options,
+            dict_columns.get('Hide').get(language),
+            dict_columns.get('Hide').get(language),
+            dict_columns.get('Hide').get(language))
 
 @app.callback(
     [Output('map', 'figure'),
@@ -433,6 +439,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    debug_mode = os.getenv('FLASK_ENV') != 'production'
+    app.run_server(debug=debug_mode)
 else:
     server = app.server
