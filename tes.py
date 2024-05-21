@@ -14,7 +14,7 @@ dict_config = {
 }
 
 dict_columns = {
-    'Yes': {'pt-br': 'Sim', 'en': 'Yes'},
+    'Hide': {'pt-br': 'Esconder', 'en': 'Esconder'},
     'Yes': {'pt-br': 'Sim', 'en': 'Yes'},
     'No': {'pt-br': 'Não', 'en': 'No'},
     'All': {'pt-br': 'Todos', 'en': 'All'},
@@ -193,7 +193,7 @@ app.layout = dbc.Container([
     ),
     #Graphs
     dbc.Row([
-       dbc.Col([
+        dbc.Col([
             dbc.Button("Hide", id="hide-info", className="mb-2"),
             dbc.Row(dbc.Col(id='num-shelters-div')),
             dbc.Row(dbc.Col(id='verified-shelters-div')),
@@ -201,7 +201,7 @@ app.layout = dbc.Container([
             dbc.Row(dbc.Col(id='pet-friendly-shelters-div')),
             dbc.Row(dbc.Col(id='total-people-div')),
         ], xs=12, sm=12, md=6, lg=3, 
-        #className="d-flex flex-column align-items-center justify-content-center"
+        className="d-flex flex-column align-items-center justify-content-center", 
         ),
         dbc.Col([
             dbc.Button("Hide", id="hide-map", className="mb-2"),
@@ -211,16 +211,13 @@ app.layout = dbc.Container([
             dbc.Button("Hide", id="hide-city-distribution", className="mb-2"),
             dcc.Graph(id='city-distribution', style={'display': 'block'})
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
-        ], 
-    ),
+    ]),
     #Table
     dbc.Row([
         dbc.Col(html.Div(id='shelter-table-div'), width=12)
     ])
 
-], fluid=True
-, style={'backgroundColor': backgroundColor}
-)
+], fluid=True, style={'backgroundColor': backgroundColor})
 
 @app.callback(
     Output('num-shelters-div', 'style'),
@@ -236,24 +233,30 @@ app.layout = dbc.Container([
     State('total-people-div', 'style'),
     prevent_initial_call=True
 )
-def hide_info(n_clicks, num_style, verified_style, not_verified_style, pet_friendly_style, total_people_style):
+def hide_info(n_clicks, num_style, verified_style, not_verified_style, pet_friendly_style, total_people_style, hide_text):
     if num_style is None or num_style.get('display', 'block') == 'block':
         new_style = {'display': 'none'}
+        new_text = 'Show'
     else:
         new_style = {'display': 'block'}
+        new_text = 'Hide'
     
-    return new_style, new_style, new_style, new_style, new_style
+    return new_style, new_style, new_style, new_style, new_style, new_text
 
 @app.callback(
     Output('map', 'style'),
     Input('hide-map', 'n_clicks'),
-    State('map', 'style'),
+    State('hide-map', 'children'),
     prevent_initial_call=True
 )
-def hide_map(n_clicks, current_style):
+def hide_map(n_clicks, current_style, hide_text):
     if current_style is None or current_style.get('display', 'block') == 'block':
-        return {'display': 'none'}
-    return {'display': 'block'}
+        new_style = {'display': 'none'}
+        new_text = 'Show'
+    else:
+        new_style = {'display': 'block'}
+        new_text = 'Hide'
+    return new_style, new_text
 
 @app.callback(
     Output('city-distribution', 'style'),
@@ -261,11 +264,14 @@ def hide_map(n_clicks, current_style):
     State('city-distribution', 'style'),
     prevent_initial_call=True
 )
-def hide_city_distribution(n_clicks, current_style):
+def hide_city_distribution(n_clicks, current_style, hide_text):
     if current_style is None or current_style.get('display', 'block') == 'block':
-        return {'display': 'none'}
-    return {'display': 'block'}
-
+        new_style = {'display': 'none'}
+        new_text = 'Show'
+    else:
+        new_style = {'display': 'block'}
+        new_text = 'Hide'
+    return new_style, new_text
 
 @app.callback(
     [Output('title', 'children'),
@@ -274,16 +280,22 @@ def hide_city_distribution(n_clicks, current_style):
      Output('availability-label', 'children'),
      Output('verification-label', 'children'),
      Output('pet-label', 'children'),
-     Output('city-filter', 'options')],
+     Output('city-filter', 'options'),
+     Output('hide-info', 'children'),
+     Output('hide-map', 'children'),
+     Output('hide-city-distribution', 'children')],
     [Input('pt-br', 'n_clicks'),
      Input('en', 'n_clicks')],
     [State('search-filter', 'placeholder'),
      State('city-label', 'children'),
      State('availability-label', 'children'),
      State('verification-label', 'children'),
-     State('pet-label', 'children')]
+     State('pet-label', 'children'),
+     State('hide-info', 'children'),
+     State('hide-map', 'children'),
+     State('hide-city-distribution', 'children')]
 )
-def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availability_label, verification_label, pet_label):
+def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availability_label, verification_label, pet_label, hide_info_text, hide_map_text, hide_city_text):
     language = 'pt-br'
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
@@ -296,7 +308,10 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
             dict_columns.get('Availability').get(language)+':',
             dict_columns.get('VerificationStatus').get(language)+':',
             dict_columns.get('Pet').get(language)+':',
-            city_options)
+            city_options,
+            dict_columns.get('Hide').get(language),
+            dict_columns.get('Hide').get(language),
+            dict_columns.get('Hide').get(language))
 
 @app.callback(
     [Output('map', 'figure'),
