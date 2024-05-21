@@ -188,7 +188,7 @@ app.layout = dbc.Container([
                 style={'color': 'black'}
             )
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
-    ], 
+    ], style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px'}
     ),
     #Graphs
     dbc.Row([
@@ -381,6 +381,6 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 else:
     server = app.server
