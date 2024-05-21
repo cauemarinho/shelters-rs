@@ -28,14 +28,14 @@ dict_columns = {
     'Availability': {'pt-br': 'Disponibilidade', 'en': 'Availability'},
     'VerificationStatus': {'pt-br': 'Verificado', 'en': 'Verified'},
     'PetFriendly': {'pt-br': 'Aceita Animais', 'en': 'Pet Friendly'},
-    'AmountOfShelters': {'pt-br': 'Número de Abrigos', 'en': 'Amount Of Shelters'},
-    'AmountOfPeopleSheltered': {'pt-br': 'Número de Pessoas Abrigadas', 'en': 'Amount Of People Sheltered'},
+    'AmountOfShelters': {'pt-br': 'Abrigos', 'en': 'Shelters'},
+    'AmountOfPeopleSheltered': {'pt-br': 'Pessoas Abrigadas', 'en': 'People Sheltered'},
     'SheltersVerified': {'pt-br': 'Verificados', 'en': 'Verified'},
     'SheltersNotVerified': {'pt-br': 'Nāo Verificados', 'en': 'Not Verified'},
     'Search': {'pt-br': 'Buscar por abrigo ou endereço', 'en': 'Search for shelter or address'},
 }
 
-dict_columns2 = {
+dict_rename = {
     'availability': 'availability',
     'link': 'link',
 }
@@ -58,43 +58,37 @@ def format_date(data_original):
 
 def get_formated_data():
     df = pd.json_normalize(get_data())
-
+    # Filter actived shelters
     df = df[df['actived'] == True]
     # Add column 'pet_icon' based on 'petFriendly' column
     df['pet_icon'] = df['petFriendly'].apply(lambda x: '🐾' if x else '')
     # Add column 'verification_icon' based on 'verified' column
     df['verification_icon'] = df['verified'].apply(lambda x: '✔️' if x else '❌')
-
     # Create a new column for capacity information
     df['capacity_info'] = df.apply(lambda row: f"{int(row['shelteredPeople']) if pd.notnull(row['shelteredPeople']) else '-'}/{int(row['capacity']) if pd.notnull(row['capacity']) else '-'}", axis=1)
-
     # link Column to create hyperlink
     df['link'] = df.apply(create_link, axis=1)
-
+    # Convert shelter_supplies to str
     df['shelter_supplies_str'] = df['shelterSupplies'].apply(lambda x: ', '.join([supply['supply']['name'] for supply in x]))
     df.drop(columns=['shelterSupplies'], inplace=True)
-
+    # Clean duplicated Shelters
     df.drop_duplicates(inplace=True)
-
     # Format Date
     df['updatedAt'] = df['updatedAt'].apply(format_date)
-
     # Order by 'updatedAt' DESC
     df = df.sort_values(by='updatedAt', ascending=False)
-
     # Add availability
     df['availability'] = df.apply(lambda row: 'Consultar' if pd.isnull(row['capacity']) or pd.isnull(row['shelteredPeople']) 
                                         else ('Lotado' if row['shelteredPeople'] > row['capacity'] 
                                         else ('Cheio' if row['shelteredPeople'] == row['capacity'] 
                                         else 'Disponível')), axis=1)
-
     # Group cities that have less then 5% to 'Outras'
     city_counts = df['city'].fillna('Desconhecida').value_counts(normalize=True)
     df['city_grouped'] = df['city'].fillna('Desconhecida').apply(lambda x: x if city_counts[x] >= 0.05 else 'Outras Cidades')
-
+    # Drop columns
     df.drop(['pix','street','neighbourhood','streetNumber','prioritySum','zipCode','createdAt'], axis=1, inplace=True)
-    
-    df.rename(columns=dict_columns2, inplace=True)
+    # Rename Columns
+    df.rename(columns=dict_rename, inplace=True)
     return df
 
 def data_cities(df):
@@ -194,25 +188,32 @@ app.layout = dbc.Container([
                 style={'color': 'black'}
             )
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
-], style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}
-),
+    ], 
+    ),
+    #Graphs
+    dbc.Row([
+        dbc.Col([
+            dbc.Row(dbc.Col(id='num-shelters-div')),
+            dbc.Row(dbc.Col(id='verified-shelters-div')),
+            dbc.Row(dbc.Col(id='not-verified-shelters-div')),
+            dbc.Row(dbc.Col(id='pet-friendly-shelters-div')),
+            dbc.Row(dbc.Col(id='total-people-div')),
+            ], xs=12, sm=12, md=6, lg=3, 
+            className="d-flex flex-column align-items-center justify-content-center", 
+            ),
+        dbc.Col(dcc.Graph(id='map'), xs=12, sm=12, md=6, lg=6, className="mb-3"),
+        dbc.Col(dcc.Graph(id='city-distribution'), xs=12, sm=12, md=6, lg=3, className="mb-3"),
+        
+        ], 
+    ),
+    #Table
+    dbc.Row([
+        dbc.Col(html.Div(id='shelter-table-div'), width=12)
+    ])
 
-dbc.Row([
-    dbc.Col(dcc.Graph(id='map'), width=12, lg=6, style={'backgroundColor': backgroundColor, 'padding': '10px'}),
-    dbc.Col(dcc.Graph(id='city-distribution'), width=12, lg=3, style={'backgroundColor': backgroundColor, 'padding': '10px'}),
-    dbc.Col([
-        dbc.Row(dbc.Col(id='num-shelters-div', className='info-div', style={'textAlign': 'center'})),
-        dbc.Row(dbc.Col(id='verified-shelters-div', className='info-div', style={'textAlign': 'center'})),
-        dbc.Row(dbc.Col(id='pet-friendly-shelters-div', className='info-div', style={'textAlign': 'center'})),
-        dbc.Row(dbc.Col(id='total-people-div', className='info-div', style={'textAlign': 'center'})),
-    ], width=12, lg=3, className="d-flex flex-column align-items-center justify-content-center", style={'backgroundColor': backgroundColor, 'padding': '10px', 'textAlign': 'center'}),
-], style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
-
-dbc.Row([
-    dbc.Col(html.Div(id='shelter-table-div'), width=12)
-])
-], fluid=True, style={'backgroundColor': backgroundColor, 'textAlign': 'center'})
-
+], fluid=True
+, style={'backgroundColor': backgroundColor}
+)
 
 @app.callback(
     [Output('title', 'children'),
@@ -251,6 +252,7 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
      Output('num-shelters-div', 'children'),
      Output('total-people-div', 'children'),
      Output('verified-shelters-div', 'children'),
+     Output('not-verified-shelters-div', 'children'),
      Output('pet-friendly-shelters-div', 'children'),
      Output('shelter-table-div', 'children')],
     [Input('search-filter', 'value'),
@@ -288,6 +290,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     if 'Todos' not in availability and len(availability) > 0:
         filtered_df = filtered_df[filtered_df['availability'].isin(availability)]
 
+    #Pie Graph
     city_distribution = px.pie(
         filtered_df,
         names='city_grouped',
@@ -300,7 +303,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         paper_bgcolor=backgroundColor,
         plot_bgcolor=fontColor,
     )
-
+    #Map Graph
     fig = px.scatter_mapbox(
         filtered_df,
         lat="latitude",
@@ -316,6 +319,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         },
         zoom=9,
     )
+
     fig.update_layout(mapbox_style=map_style)
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor=backgroundColor)
     fig.update_layout( 
@@ -334,7 +338,8 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     
     num_shelters = html.P(f"{dict_columns.get('AmountOfShelters').get(language)}: {len(filtered_df)}", style={'color': fontColor, 'fontWeight': 'bold'})
     total_people = html.P(f"{dict_columns.get('AmountOfPeopleSheltered').get(language)}: {int(filtered_df['shelteredPeople'].sum())}", style={'color': fontColor, 'fontWeight': 'bold'})
-    verified_shelters = html.P(f"{dict_columns.get('SheltersVerified').get(language)}: {len(filtered_df[filtered_df['verified']])} | {dict_columns.get('SheltersNotVerified').get(language)}: {len(filtered_df[~filtered_df['verified']])}", style={'color': fontColor, 'fontWeight': 'bold'})
+    verified_shelters = html.P(f"{dict_columns.get('SheltersVerified').get(language)}: {len(filtered_df[filtered_df['verified']])}", style={'color': fontColor, 'fontWeight': 'bold'})
+    not_verified_shelters = html.P(f"{dict_columns.get('SheltersNotVerified').get(language)}: {len(filtered_df[~filtered_df['verified']])}", style={'color': fontColor, 'fontWeight': 'bold'})
     pet_friendly_shelters = html.P(f"{dict_columns.get('PetFriendly').get(language)}: {filtered_df['petFriendly'].sum()}", style={'color': fontColor, 'fontWeight': 'bold'})
 
     shelter_table = dash_table.DataTable(
@@ -366,38 +371,14 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
             {'if': {'column_id': 'updatedAt'}, 'width': '5%'}, 
         ],
         style_data_conditional=[
-            {
-                'if': {
-                    'filter_query': '{availability} = "Lotado"',
-                },
-                'backgroundColor': '#FF4136',
-                'color': 'black'
-            },
-            {
-                'if': {
-                    'filter_query': '{availability} = "Disponível"',
-                },
-                'backgroundColor': '#2ECC40',
-                'color': 'black'
-            },
-            {
-                'if': {
-                    'filter_query': '{availability} = "Cheio"',
-                },
-                'backgroundColor': '#FF851B',
-                'color': 'black'
-            },
-            {
-                'if': {
-                    'filter_query': '{availability} = "Consultar"',
-                },
-                'backgroundColor': '#00BFFF',
-                'color': 'black'
-            },
+            {'if': {'filter_query': '{availability} = "Lotado"',},'backgroundColor': '#FF4136'},
+            {'if': {'filter_query': '{availability} = "Disponível"',},'backgroundColor': '#2ECC40'},
+            {'if': {'filter_query': '{availability} = "Cheio"',},'backgroundColor': '#FF851B'},
+            {'if': {'filter_query': '{availability} = "Consultar"',},'backgroundColor': '#00BFFF'},
         ],
     )
 
-    return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table
+    return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table
 
 if __name__ == '__main__':
     app.run_server(debug=False)
