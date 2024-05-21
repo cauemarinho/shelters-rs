@@ -111,17 +111,19 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col(html.Div([
             html.A([
-                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197386.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px'}),
+                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197386.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px', 'margin-right': '7px'}),
             ], title="brazil icons", id='pt-br', n_clicks=0),
             html.A([
-                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197484.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px', 'margin-left': '10px'}),
+                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197484.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px', 'margin-left': '7px'}),
             ], title="usa icons", id='en', n_clicks=0),
         ]), width="auto"),
-    ], className="mt-3 mb-3 justify-content-center"),
+    ], className="justify-content-center",
+    style={'padding': '10px'}),
     #Title
     dbc.Row([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
-    ]),
+    ],
+    style={ 'textAlign': 'center'}),
     #Search
     dbc.Row([
         dbc.Col(dcc.Input(
@@ -131,7 +133,7 @@ app.layout = dbc.Container([
             className='responsive-input', 
             style={'textAlign': 'center'}
         ), width=12)
-    ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
+    ], className='dropdown-div', style={'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
     #Filters
     dbc.Row([
         dbc.Col([
