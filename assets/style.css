@@ -1,0 +1,29 @@
+@media (max-width: 576px) {
+    .responsive-input {
+        width: 100%;
+    }
+}
+
+@media (min-width: 577px) and (max-width: 768px) {
+    .responsive-input {
+        width: 90%;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 992px) {
+    .responsive-input {
+        width: 80%;
+    }
+}
+
+@media (min-width: 993px) and (max-width: 1200px) {
+    .responsive-input {
+        width: 70%;
+    }
+}
+
+@media (min-width: 1201px) {
+    .responsive-input {
+        width: 60%;
+    }
+}

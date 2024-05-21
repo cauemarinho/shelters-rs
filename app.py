@@ -1,5 +1,6 @@
 import dash
 from dash import dcc, html, Input, Output, dash_table, State
+import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 import json
@@ -106,34 +107,38 @@ def data_cities(df):
 df = get_formated_data()
 city_options = data_cities(df)
 
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
-app.layout = html.Div([
-    # Language switcher
-    html.Div([
-        html.A([
-            html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197386.png', style={'cursor': 'pointer', 'margin': '22px', 'width': '25px', 'height': '25px', 'margin-left': '2%'}),
-        ], title="brazil icons", id='pt-br', n_clicks=0),  
-        html.A([
-            html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197484.png', style={'cursor': 'pointer', 'margin': '22px', 'width': '25px', 'height': '25px'}),
-        ], title="usa icons", id='en', n_clicks=0),
+app.layout = dbc.Container([
+    #Language
+    dbc.Row([
+        dbc.Col(html.Div([
+            html.A([
+                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197386.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px'}),
+            ], title="brazil icons", id='pt-br', n_clicks=0),
+            html.A([
+                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197484.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px', 'margin-left': '10px'}),
+            ], title="usa icons", id='en', n_clicks=0),
+        ]), width="auto"),
+    ], className="mt-3 mb-3 justify-content-center"),
+    #Title
+    dbc.Row([
+        dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
     ]),
-       # Title
-    html.H1(id='title', style={'color': fontColor, 'width': '100%',  'margin': '0px', 'textAlign': 'center'}),
-    # Search
-    html.Div([
-        dcc.Input(
+    #Search
+    dbc.Row([
+        dbc.Col(dcc.Input(
             id='search-filter',
             type='text',
             placeholder=f"{dict_columns.get('Search').get('pt-br')}", 
-            style={'width': '50%', 'display': 'inline-block', 'padding': '6px', 'margin-right': '2%', 'textAlign': 'center'}
-        )
+            className='responsive-input', 
+            style={'textAlign': 'center'}
+        ), width=12)
     ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
-    # Filters
-    html.Div([
-        
-        html.Div([
+    #Filters
+    dbc.Row([
+        dbc.Col([
             html.Label(id='city-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='city-filter',
@@ -143,9 +148,8 @@ app.layout = html.Div([
                 clearable=True,
                 style={'color': 'black'}
             )
-        ], style={'width': '30%', 'display': 'inline-block', 'margin-right': '1%'}), 
-        
-        html.Div([
+        ], xs=12, sm=12, md=6, lg=3, className="mb-3"), 
+        dbc.Col([
             html.Label(id='availability-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='availability-filter',
@@ -161,9 +165,8 @@ app.layout = html.Div([
                 clearable=True,
                 style={'color': 'black'}
             )
-        ], style={'width': '30%', 'display': 'inline-block', 'margin-right': '1%'}),
-        
-        html.Div([
+        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
+        dbc.Col([
             html.Label(id='verification-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='verification-filter',
@@ -176,9 +179,8 @@ app.layout = html.Div([
                 clearable=False,
                 style={'color': 'black'}
             )
-        ], style={'width': '13%', 'display': 'inline-block', 'margin-right': '1%'}),
-        
-        html.Div([
+        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
+        dbc.Col([
             html.Label(id='pet-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='pet-filter',
@@ -191,29 +193,26 @@ app.layout = html.Div([
                 clearable=False,
                 style={'color': 'black'}
             )
-        ], style={'width': '13%', 'display': 'inline-block', 'margin-right': '1%'}),
-    ], className='dropdown-div', style={'backgroundColor': backgroundColor, 'padding': '5px', 'borderRadius': '5px', 'textAlign': 'center'}),
-    # Map, Pie, Table
-    html.Div([
-        # Map
-        html.Div([
-            dcc.Graph(id='map'),
-        ], style={'width': '40%', 'backgroundColor': backgroundColor, 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
-        # Pie
-        html.Div([
-            dcc.Graph(id='city-distribution'),
-        ], style={'width': '25%', 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
-        # Text
-        html.Div([
-            html.Div(id='num-shelters-div', className='info-div', style={'textAlign': 'center'}),
-            html.Div(id='verified-shelters-div', className='info-div', style={'textAlign': 'center'}),
-            html.Div(id='pet-friendly-shelters-div', className='info-div', style={'textAlign': 'center'}),
-            html.Div(id='total-people-div', className='info-div', style={'textAlign': 'center'}),
-        ], style={'width': '25%', 'backgroundColor': backgroundColor, 'display': 'inline-block', 'vertical-align': 'middle', 'margin-right': '2%'}),
-    ], className='pie-container', style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px'}),
-    # Table
-    html.Div(id='shelter-table-div')
-], style={'backgroundColor': backgroundColor})
+        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
+], style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}
+),
+
+dbc.Row([
+    dbc.Col(dcc.Graph(id='map'), width=12, lg=6, style={'backgroundColor': backgroundColor, 'padding': '10px'}),
+    dbc.Col(dcc.Graph(id='city-distribution'), width=12, lg=3, style={'backgroundColor': backgroundColor, 'padding': '10px'}),
+    dbc.Col([
+        dbc.Row(dbc.Col(id='num-shelters-div', className='info-div', style={'textAlign': 'center'})),
+        dbc.Row(dbc.Col(id='verified-shelters-div', className='info-div', style={'textAlign': 'center'})),
+        dbc.Row(dbc.Col(id='pet-friendly-shelters-div', className='info-div', style={'textAlign': 'center'})),
+        dbc.Row(dbc.Col(id='total-people-div', className='info-div', style={'textAlign': 'center'})),
+    ], width=12, lg=3, className="d-flex flex-column align-items-center justify-content-center", style={'backgroundColor': backgroundColor, 'padding': '10px', 'textAlign': 'center'}),
+], style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
+
+dbc.Row([
+    dbc.Col(html.Div(id='shelter-table-div'), width=12)
+])
+], fluid=True, style={'backgroundColor': backgroundColor, 'textAlign': 'center'})
+
 
 @app.callback(
     [Output('title', 'children'),
@@ -240,10 +239,10 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
     
     return (f"{dict_columns.get('Shelter').get(language)}s - Rio Grande do Sul",
             dict_columns.get('Search').get(language),
-            dict_columns.get('City').get(language),
-            dict_columns.get('Availability').get(language),
-            dict_columns.get('VerificationStatus').get(language),
-            dict_columns.get('Pet').get(language),
+            dict_columns.get('City').get(language)+':',
+            dict_columns.get('Availability').get(language)+':',
+            dict_columns.get('VerificationStatus').get(language)+':',
+            dict_columns.get('Pet').get(language)+':',
             city_options)
 
 @app.callback(
@@ -401,6 +400,6 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     return fig, city_distribution, num_shelters, total_people, verified_shelters, pet_friendly_shelters, shelter_table
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 else:
     server = app.server
