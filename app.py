@@ -7,7 +7,12 @@ import pandas as pd
 import plotly.express as px
 import json
 import redis
+import subprocess
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask import Flask, jsonify
+from datetime import datetime
 
+# Set up Redis connection
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 client = redis.Redis.from_url(redis_url)
 
@@ -109,6 +114,24 @@ def data_cities(df):
     city_options = sorted(city_options, key=lambda x: x['label'])
     return city_options
 
+def update_shelter_data():
+    try:
+        result = subprocess.run(['python', 'get_api_data.py'], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error updating data: {result.stderr}")
+        else:
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            client.set('last_update', current_time)
+            print("Data updated successfully")
+    except Exception as e:
+        print(f"Exception during data update: {e}")
+
+def get_last_update_time():
+    last_update = client.get('last_update')
+    if last_update:
+        return last_update.decode('utf-8')
+    return 'Never'
+
 df = get_formated_data()
 city_options = data_cities(df)
 
@@ -117,6 +140,19 @@ server = app.server
 
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
     sslify = SSLify(server)
+
+# Schedule the update every 10 minutes
+scheduler = BackgroundScheduler()
+scheduler.add_job(update_shelter_data, 'interval', minutes=10)
+scheduler.start()
+
+@server.route('/update-data', methods=['GET'])
+def update_data():
+    try:
+        update_shelter_data()
+        return jsonify({"message": "Data update triggered"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 app.layout = dbc.Container([
     #Language
@@ -136,6 +172,7 @@ app.layout = dbc.Container([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
     ],
     style={ 'textAlign': 'center'}),
+    html.Div(f"Last update: {get_last_update_time()}"),
     #Search
     dbc.Row([
         dbc.Col(dcc.Input(
@@ -454,6 +491,10 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
-    app.run_server(debug=debug_mode)
+    try:
+        app.run_server(debug=debug_mode)
+    finally:
+        scheduler.shutdown()
 else:
     server = app.server
+
