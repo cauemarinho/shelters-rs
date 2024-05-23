@@ -18,7 +18,7 @@ client = redis.Redis.from_url(redis_url)
 
 PAGE_SIZE = 25
 COLORS = 1
-CALL_API_MINUTES =10
+CALL_API_MINUTES = 120
 
 dict_config = {
     1: {'backgroundColor': 'black', 'fontColor': 'white', 'map_style': 'carto-darkmatter'},
@@ -142,7 +142,7 @@ server = app.server
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
     sslify = SSLify(server)
 
-# Schedule the CALL_API_MINUTES
+# Scheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(update_shelter_data, 'interval', minutes=CALL_API_MINUTES)
 scheduler.start()
@@ -369,8 +369,7 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
      Output('verified-shelters-div', 'children'),
      Output('not-verified-shelters-div', 'children'),
      Output('pet-friendly-shelters-div', 'children'),
-     Output('shelter-table-div', 'children'),
-     Output('last-update-div', 'children')],
+     Output('shelter-table-div', 'children')],
     [Input('search-filter', 'value'),
      Input('city-filter', 'value'),
      Input('verification-filter', 'value'),
@@ -494,9 +493,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         ],
     )
 
-    last_update_time = f"Last update: {get_last_update_time()}"
-
-    return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table, last_update_time
+    return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
