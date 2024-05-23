@@ -8,7 +8,8 @@ dash-core-components==2.0.0
 dash-html-components==2.0.0
 dash-table==5.0.0
 Flask==3.0.3
-flask-talisman==1.1.0
+Flask-SSLify==0.1.5
+#flask-talisman==1.1.0
 gunicorn==22.0.0
 idna==3.7
 importlib_metadata==7.1.0
