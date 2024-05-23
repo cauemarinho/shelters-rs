@@ -6,6 +6,10 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 import json
+import redis
+
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+client = redis.Redis.from_url(redis_url)
 
 PAGE_SIZE = 25
 COLORS = 1
@@ -48,8 +52,12 @@ fontColor = dict_config.get(COLORS).get("fontColor")
 map_style = dict_config.get(COLORS).get("map_style")
 
 def get_data():
-    with open('shelters.json', 'r') as file:
-        return json.load(file)
+    shelter_data = client.get('shelters')
+    if shelter_data:
+        return json.loads(shelter_data)
+    else:
+        with open('shelters.json', 'r') as file:
+            return json.load(file)
 
 def create_link(row):
     icons = f"{row['pet_icon']}"
