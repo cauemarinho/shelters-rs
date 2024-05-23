@@ -18,6 +18,7 @@ client = redis.Redis.from_url(redis_url)
 
 PAGE_SIZE = 25
 COLORS = 1
+CALL_API_MINUTES =10
 
 dict_config = {
     1: {'backgroundColor': 'black', 'fontColor': 'white', 'map_style': 'carto-darkmatter'},
@@ -141,9 +142,9 @@ server = app.server
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
     sslify = SSLify(server)
 
-# Schedule the update every 10 minutes
+# Schedule the CALL_API_MINUTES
 scheduler = BackgroundScheduler()
-scheduler.add_job(update_shelter_data, 'interval', minutes=10)
+scheduler.add_job(update_shelter_data, 'interval', minutes=CALL_API_MINUTES)
 scheduler.start()
 
 @server.route('/update-data', methods=['GET'])
@@ -170,9 +171,11 @@ app.layout = dbc.Container([
     #Title
     dbc.Row([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
-    ],
-    style={ 'textAlign': 'center'}),
-    html.Div(id='last-update-div', children=f"Last update: {get_last_update_time()}"),
+    ], style={'textAlign': 'center'}),
+    #Last Update
+    dbc.Row([
+        dbc.Col(html.Div(id='last-update-div', children=f"Last update: {get_last_update_time()}"), width=12)
+    ], style={'textAlign': 'center', 'marginTop': '10px'}),
     #Search
     dbc.Row([
         dbc.Col(dcc.Input(
@@ -328,7 +331,8 @@ def hide_city_distribution(n_clicks, current_style):
      Output('city-filter', 'options'),
      Output('hide-info', 'children'),
      Output('hide-map', 'children'),
-     Output('hide-city-distribution', 'children')],
+     Output('hide-city-distribution', 'children'),
+     Output('last-update-div', 'children')],
     [Input('pt-br', 'n_clicks'),
      Input('en', 'n_clicks')],
     [State('search-filter', 'placeholder'),
@@ -343,6 +347,7 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
         language = 'en'
     
     city_options = data_cities(df)
+    last_update_time = f"Last update: {get_last_update_time()}"
     
     return (f"{dict_columns.get('Shelter').get(language)}s - Rio Grande do Sul",
             dict_columns.get('Search').get(language),
@@ -353,7 +358,8 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
             city_options,
             dict_columns.get('Hide').get(language),
             dict_columns.get('Hide').get(language),
-            dict_columns.get('Hide').get(language))
+            dict_columns.get('Hide').get(language),
+            last_update_time)
 
 @app.callback(
     [Output('map', 'figure'),
@@ -363,7 +369,8 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
      Output('verified-shelters-div', 'children'),
      Output('not-verified-shelters-div', 'children'),
      Output('pet-friendly-shelters-div', 'children'),
-     Output('shelter-table-div', 'children')],
+     Output('shelter-table-div', 'children'),
+     Output('last-update-div', 'children')],
     [Input('search-filter', 'value'),
      Input('city-filter', 'value'),
      Input('verification-filter', 'value'),
@@ -487,11 +494,16 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         ],
     )
 
-    return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table
+    last_update_time = f"Last update: {get_last_update_time()}"
+
+    return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table, last_update_time
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
     update_shelter_data()  # Run the update function at startup
-    app.run_server(debug=debug_mode)
+    try:
+        app.run_server(debug=debug_mode)
+    finally:
+        scheduler.shutdown()
 else:
     server = app.server
