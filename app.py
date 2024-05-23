@@ -172,7 +172,7 @@ app.layout = dbc.Container([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
     ],
     style={ 'textAlign': 'center'}),
-    html.Div(f"Last update: {get_last_update_time()}"),
+    html.Div(id='last-update-div', children=f"Last update: {get_last_update_time()}"),
     #Search
     dbc.Row([
         dbc.Col(dcc.Input(
@@ -491,10 +491,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
-    try:
-        app.run_server(debug=debug_mode)
-    finally:
-        scheduler.shutdown()
+    update_shelter_data()  # Run the update function at startup
+    app.run_server(debug=debug_mode)
 else:
     server = app.server
-
