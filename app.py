@@ -1,4 +1,4 @@
-from flask_sslify import SSLify
+from flask_talisman import Talisman
 import os
 import dash
 from dash import dcc, html, Input, Output, dash_table, State
@@ -107,8 +107,8 @@ city_options = data_cities(df)
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
-if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
-    sslify = SSLify(server)
+if 'DYNO' in os.environ:  # Only trigger Talisman if on Heroku
+    Talisman(server)
 
 app.layout = dbc.Container([
     #Language
