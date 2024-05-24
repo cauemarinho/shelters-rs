@@ -509,7 +509,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
 
     #updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']].fillna("")
     # Substituir valores nulos nas colunas especificadas por uma string vazia
-    updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']].fillna("")
+    updated_data[['city', 'capacity', 'shelteredPeople', 'availability2']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability2']].fillna("")
     
     updated_data['availability2'] = df.apply(lambda row: map_availability(row, language), axis=1)
 
@@ -520,7 +520,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         hover_name="name",
         #hover_data={'customdata': False},  # Desabilita hover_data padrão para customdata
         #hover_data=["city", "capacity", "shelteredPeople","availability_en"],
-        hover_data={'city': True, 'capacity': True, 'shelteredPeople': True, 'availability_en': True},
+        hover_data={'city': True, 'capacity': True, 'shelteredPeople': True},
     
         #custom_data=['city', 'capacity', 'shelteredPeople', 'availability_en'],
         color="availability2",
@@ -530,7 +530,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
             f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get(language)}": 'green',
             'Cheio': 'orange',
             'Consultar': 'blue',
-            'YOU': fontColor
+            'YOU': 'blank'
         },
         labels=labels,
         zoom=9,
