@@ -12,10 +12,12 @@ import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, jsonify, session, redirect, url_for, request
 from datetime import datetime
+from utils import generate_secret_key
 
 # Set up Redis connection
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 client = redis.Redis.from_url(redis_url)
+SECRET_KEY = generate_secret_key()
 
 PAGE_SIZE = 25
 COLORS = 1
@@ -49,6 +51,15 @@ dict_columns = {
     'Search': {'pt-br': 'Buscar por abrigo ou endereço', 'en': 'Search for shelter or address'},
 }
 
+dict_availabilityStatus = {
+    'AvailabilityStatus': {
+        'Available' : { 'pt-br': 'Disponível', 'en': 'Available'},
+        'Check' : { 'pt-br': 'Consultar', 'en': 'Check'},
+        'Crowded' : { 'pt-br': 'Cheio', 'en': 'Crowded'},
+        'Full' : { 'pt-br': 'Lotado', 'en': 'Full'}
+        }
+}
+
 dict_rename = {
     'availability': 'availability',
     'link': 'link',
@@ -57,6 +68,20 @@ dict_rename = {
 backgroundColor = dict_config.get(COLORS).get("backgroundColor")
 fontColor = dict_config.get(COLORS).get("fontColor")
 map_style = dict_config.get(COLORS).get("map_style")
+
+
+# Função para mapear a disponibilidade usando os dicionários
+def map_availability(row, language):
+    if pd.isnull(row['capacity']) or pd.isnull(row['shelteredPeople']):
+        status = 'Check'
+    elif row['shelteredPeople'] > row['capacity']:
+        status = 'Full'
+    elif row['shelteredPeople'] == row['capacity']:
+        status = 'Crowded'
+    else:
+        status = 'Available'
+    
+    return dict_availabilityStatus['AvailabilityStatus'][status][language]
 
 def get_data():
     shelter_data = client.get('shelters')
@@ -100,6 +125,11 @@ def get_formated_data():
                                         else ('Lotado' if row['shelteredPeople'] > row['capacity'] 
                                         else ('Cheio' if row['shelteredPeople'] == row['capacity'] 
                                         else 'Disponível')), axis=1)
+
+        # Aplicar a função ao DataFrame
+    df['availability_ptbr'] = df.apply(lambda row: map_availability(row, 'pt-br'), axis=1)
+    df['availability_en'] = df.apply(lambda row: map_availability(row, 'en'), axis=1)
+    
     # Group cities that have less then 5% to 'Outras'
     city_counts = df['city'].fillna('Desconhecida').value_counts(normalize=True)
     df['city_grouped'] = df['city'].fillna('Desconhecida').apply(lambda x: x if city_counts[x] >= 0.05 else 'Outras Cidades')
@@ -110,6 +140,7 @@ def get_formated_data():
     return df
 
 def data_cities(df):
+    df['city'] = df['city'].fillna('').astype(str)
     cities = df['city'].unique()
     city_options = [{'label': city, 'value': city} for city in cities if city is not None]
     city_options.insert(0, {'label': 'Todas as Cidades', 'value': 'Todas as Cidades'})
@@ -134,36 +165,39 @@ def get_last_update_time():
         return last_update.decode('utf-8')
     return 'Never'
 
-def get_user_language():
+def get_user_language_and_location():
     try:
-        #ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
-        ip = "193.19.205.219" #BR
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
         response = requests.get(f'https://ipinfo.io/{ip}/json')
-        print(f"{response.json()=}")
+        loc = response.json().get('loc')
         country = response.json().get('country')
-        if country == 'BR':
-            return 'pt-br'
-        else:
-            return 'en'
+        if loc:
+            lat, lon = loc.split(',')
+            return ('pt-br' if country == 'BR' else 'en', float(lat), float(lon))
     except Exception as e:
         print(f"Error determining user location: {e}")
-        return 'en'
+    return 'en', None, None
 
 df = get_formated_data()
 city_options = data_cities(df)
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 server = app.server
-app.server.config['SECRET_KEY'] = 'your-secret-key'
+app.server.config['SECRET_KEY'] = SECRET_KEY
 
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
     sslify = SSLify(server)
 
 @server.before_request
 def before_request():
-    user_language = get_user_language()
-    print(f"{user_language=}")
-    session['language'] = user_language
+    if 'language' not in session or 'lat' not in session or 'lon' not in session:
+        user_language, lat, lon = get_user_language_and_location()
+        session['language'] = user_language
+        session['lat'] = lat
+        session['lon'] = lon
+    print(f"{session['language'] = }, {session['lat'] = }, {session['lon'] = }")
+    current_timestamp = datetime.now()
+    print("Current Timestamp:", current_timestamp)
 
 # Scheduler
 scheduler = BackgroundScheduler()
@@ -179,7 +213,7 @@ def update_data():
         return jsonify({"error": str(e)}), 500
 
 app.layout = dbc.Container([
-    # Language
+    #Language
     dbc.Row([
         dbc.Col(html.Div([
             html.A([
@@ -191,15 +225,15 @@ app.layout = dbc.Container([
         ]), width="auto"),
     ], className="justify-content-center",
     style={'padding': '10px'}),
-    # Title
+    #Title
     dbc.Row([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
     ], style={'textAlign': 'center'}),
-    # Last Update
+    #Last Update
     dbc.Row([
         dbc.Col(html.Div(id='last-update-div', children=f"Last update: {get_last_update_time()}"), width=12)
     ], style={'textAlign': 'center', 'marginTop': '10px'}),
-    # Search
+    #Search
     dbc.Row([
         dbc.Col(dcc.Input(
             id='search-filter',
@@ -209,7 +243,7 @@ app.layout = dbc.Container([
             style={'textAlign': 'center'}
         ), width=12)
     ], className='dropdown-div', style={'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
-    # Filters
+    #Filters
     dbc.Row([
         dbc.Col([
             html.Label(id='city-label', style={'color': fontColor}),
@@ -269,7 +303,7 @@ app.layout = dbc.Container([
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
     ], style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px'}
     ),
-    # Graphs
+    #Graphs
     dbc.Row([
        dbc.Col([
             dbc.Button(id="hide-info", className="mb-2"),
@@ -291,7 +325,7 @@ app.layout = dbc.Container([
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
         ], 
     ),
-    # Table
+    #Table
     dbc.Row([
         dbc.Col(html.Div(id='shelter-table-div'), width=12)
     ])
@@ -401,9 +435,10 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
      Input('pet-filter', 'value'),
      Input('availability-filter', 'value'),
      Input('pt-br', 'n_clicks'),
-     Input('en', 'n_clicks')]
+     Input('en', 'n_clicks')],
+    [State('map', 'figure')]
 )
-def update_data(search, city, verification, pet, availability, pt_clicks, en_clicks):
+def update_data(search, city, verification, pet, availability, pt_clicks, en_clicks, map_figure):
     language = session.get('language', 'en')
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
@@ -446,21 +481,75 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         plot_bgcolor=fontColor,
     )
     # Map Graph
+
+    lat = session.get('lat', -30.0290596)
+    lon = session.get('lon', -51.2345029)
+
+    new_point = pd.DataFrame({
+    'latitude': [lat],
+    'longitude': [lon],
+    'name': ['Test'],
+    'availability2': "YOU"
+    })
+
+    #new_point = new_point.astype({'latitude': 'float64', 'longitude': 'float64'})
+
+    updated_data = pd.concat([filtered_df, new_point], ignore_index=True)
+
+        # Definir os rótulos das colunas
+    labels = {
+        'latitude': 'Latitude',
+        'longitude': 'Longitude',
+        'name': 'Nome',
+        'city': 'Cidade',
+        'capacity': 'Capacidade',
+        'shelteredPeople': 'Pessoas Alojadas',
+        'availability2': 'Disponibilidade'
+    }
+
+    #updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']].fillna("")
+    # Substituir valores nulos nas colunas especificadas por uma string vazia
+    updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']].fillna("")
+    
+    updated_data['availability2'] = df.apply(lambda row: map_availability(row, language), axis=1)
+
     fig = px.scatter_mapbox(
-        filtered_df,
+        updated_data,
         lat="latitude",
         lon="longitude",
         hover_name="name",
-        hover_data=["city", "capacity", "shelteredPeople"],
-        color="availability",
+        #hover_data={'customdata': False},  # Desabilita hover_data padrão para customdata
+        #hover_data=["city", "capacity", "shelteredPeople","availability_en"],
+        hover_data={'city': True, 'capacity': True, 'shelteredPeople': True, 'availability_en': True},
+    
+        #custom_data=['city', 'capacity', 'shelteredPeople', 'availability_en'],
+        color="availability2",
         color_discrete_map={
             'Lotado': 'red',
-            'Disponível': 'green',
+            #'Disponível': 'green',
+            f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get(language)}": 'green',
             'Cheio': 'orange',
-            'Consultar': 'blue'
+            'Consultar': 'blue',
+            'YOU': fontColor
         },
+        labels=labels,
         zoom=9,
     )
+
+    # Aumentar o tamanho dos pins (marcadores)
+    fig.update_traces(marker=dict(size=12))  # Ajuste o valor de 'size' conforme necessário
+
+    # # Atualizar layout para exibir customdata corretamente
+    # fig.update_traces(
+    #     hovertemplate="<br>".join([
+    #         "Nome: %{hovertext}",
+    #         "Cidade: %{customdata[0]}",
+    #         "Capacidade: %{customdata[1]}",
+    #         "Pessoas Alojadas: %{customdata[2]}",
+    #         "Disponibilidade (EN): %{customdata[3]}"
+    #     ])
+    # )
+
 
     fig.update_layout(mapbox_style=map_style)
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor=backgroundColor)
