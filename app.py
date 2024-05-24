@@ -8,8 +8,9 @@ import plotly.express as px
 import json
 import redis
 import subprocess
+import requests
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, jsonify
+from flask import Flask, jsonify, session, redirect, url_for, request
 from datetime import datetime
 
 # Set up Redis connection
@@ -133,14 +134,36 @@ def get_last_update_time():
         return last_update.decode('utf-8')
     return 'Never'
 
+def get_user_language():
+    try:
+        #ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
+        ip = "193.19.205.219" #BR
+        response = requests.get(f'https://ipinfo.io/{ip}/json')
+        print(f"{response.json()=}")
+        country = response.json().get('country')
+        if country == 'BR':
+            return 'pt-br'
+        else:
+            return 'en'
+    except Exception as e:
+        print(f"Error determining user location: {e}")
+        return 'en'
+
 df = get_formated_data()
 city_options = data_cities(df)
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 server = app.server
+app.server.config['SECRET_KEY'] = 'your-secret-key'
 
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
     sslify = SSLify(server)
+
+@server.before_request
+def before_request():
+    user_language = get_user_language()
+    print(f"{user_language=}")
+    session['language'] = user_language
 
 # Scheduler
 scheduler = BackgroundScheduler()
@@ -156,7 +179,7 @@ def update_data():
         return jsonify({"error": str(e)}), 500
 
 app.layout = dbc.Container([
-    #Language
+    # Language
     dbc.Row([
         dbc.Col(html.Div([
             html.A([
@@ -168,15 +191,15 @@ app.layout = dbc.Container([
         ]), width="auto"),
     ], className="justify-content-center",
     style={'padding': '10px'}),
-    #Title
+    # Title
     dbc.Row([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
     ], style={'textAlign': 'center'}),
-    #Last Update
+    # Last Update
     dbc.Row([
         dbc.Col(html.Div(id='last-update-div', children=f"Last update: {get_last_update_time()}"), width=12)
     ], style={'textAlign': 'center', 'marginTop': '10px'}),
-    #Search
+    # Search
     dbc.Row([
         dbc.Col(dcc.Input(
             id='search-filter',
@@ -186,7 +209,7 @@ app.layout = dbc.Container([
             style={'textAlign': 'center'}
         ), width=12)
     ], className='dropdown-div', style={'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
-    #Filters
+    # Filters
     dbc.Row([
         dbc.Col([
             html.Label(id='city-label', style={'color': fontColor}),
@@ -246,7 +269,7 @@ app.layout = dbc.Container([
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
     ], style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px'}
     ),
-    #Graphs
+    # Graphs
     dbc.Row([
        dbc.Col([
             dbc.Button(id="hide-info", className="mb-2"),
@@ -268,7 +291,7 @@ app.layout = dbc.Container([
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
         ], 
     ),
-    #Table
+    # Table
     dbc.Row([
         dbc.Col(html.Div(id='shelter-table-div'), width=12)
     ])
@@ -342,9 +365,11 @@ def hide_city_distribution(n_clicks, current_style):
      State('pet-label', 'children')]
 )
 def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availability_label, verification_label, pet_label):
-    language = 'pt-br'
+    language = session.get('language', 'en')
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
+    elif pt_clicks and (not en_clicks or pt_clicks > en_clicks):
+        language = 'pt-br'
     
     city_options = data_cities(df)
     last_update_time = f"Last update: {get_last_update_time()}"
@@ -379,9 +404,11 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
      Input('en', 'n_clicks')]
 )
 def update_data(search, city, verification, pet, availability, pt_clicks, en_clicks):
-    language = 'pt-br'
+    language = session.get('language', 'en')
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
+    elif pt_clicks and (not en_clicks or pt_clicks > en_clicks):
+        language = 'pt-br'
 
     filtered_df = get_formated_data()
     
@@ -405,7 +432,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     if 'Todos' not in availability and len(availability) > 0:
         filtered_df = filtered_df[filtered_df['availability'].isin(availability)]
 
-    #Pie Graph
+    # Pie Graph
     city_distribution = px.pie(
         filtered_df,
         names='city_grouped',
@@ -418,7 +445,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         paper_bgcolor=backgroundColor,
         plot_bgcolor=fontColor,
     )
-    #Map Graph
+    # Map Graph
     fig = px.scatter_mapbox(
         filtered_df,
         lat="latitude",
