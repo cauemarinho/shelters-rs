@@ -491,10 +491,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     'name': ['Test'],
     'availability2': "YOU"
     })
-
     #new_point = new_point.astype({'latitude': 'float64', 'longitude': 'float64'})
-
-    updated_data = pd.concat([filtered_df, new_point], ignore_index=True)
 
         # Definir os rótulos das colunas
     labels = {
@@ -509,9 +506,11 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
 
     #updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']].fillna("")
     # Substituir valores nulos nas colunas especificadas por uma string vazia
-    updated_data[['city', 'capacity', 'shelteredPeople', 'availability2']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability2']].fillna("")
+    filtered_df[['city', 'capacity', 'shelteredPeople', 'availability2']] = filtered_df[['city', 'capacity', 'shelteredPeople', 'availability2']].fillna("")
     
-    updated_data['availability2'] = df.apply(lambda row: map_availability(row, language), axis=1)
+    filtered_df['availability2'] = df.apply(lambda row: map_availability(row, language), axis=1)
+
+    updated_data = pd.concat([filtered_df, new_point], ignore_index=True)
 
     fig = px.scatter_mapbox(
         updated_data,
