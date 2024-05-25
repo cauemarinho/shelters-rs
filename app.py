@@ -26,13 +26,14 @@ CALL_API_MINUTES = 60
 DEFAULT_LANGUAGE = 'pt-br'
 
 dict_config = {
-    1: {'backgroundColor': '#0E0F0E', 'fontColor': 'white', 'map_style': 'carto-darkmatter'},
-    2: {'backgroundColor': 'white', 'fontColor': 'black', 'map_style': 'carto-positron'}
+    1: {'backgroundColor': '#0E0F0E', 'fontColor': 'white', 'map_style': 'carto-darkmatter', 'font-family': 'Georgia, serif'},
+    2: {'backgroundColor': 'white', 'fontColor': 'black', 'map_style': 'carto-positron', 'font-family': 'Georgia, serif'}
 }
 
-backgroundColor = dict_config.get(COLORS).get("backgroundColor")
-fontColor = dict_config.get(COLORS).get("fontColor")
-map_style = dict_config.get(COLORS).get("map_style")
+backgroundColor = dict_config[COLORS]["backgroundColor"]
+fontColor = dict_config[COLORS]["fontColor"]
+map_style = dict_config[COLORS]["map_style"]
+font_family = dict_config[COLORS]["font-family"]
 
 dict_columns = {
     'Hide': {'pt-br': 'Esconder', 'en': 'Hide'},
@@ -55,9 +56,6 @@ dict_columns = {
     'SheltersVerified': {'pt-br': 'Verificados', 'en': 'Verified'},
     'SheltersNotVerified': {'pt-br': 'Nāo Verificados', 'en': 'Not Verified'},
     'Search': {'pt-br': 'Buscar por abrigo ou endereço', 'en': 'Search for shelter or address'},
-}
-
-dict_availabilityStatus = {
     'AvailabilityStatus': {
         'Available' : {'statusId': 1, 'pt-br': 'Disponível', 'en': 'Available', 'color':'#2ECC40'},
         'Check' : {'statusId': 2, 'pt-br': 'Consultar', 'en': 'Check', 'color':'#00BFFF'},
@@ -66,6 +64,8 @@ dict_availabilityStatus = {
         'Location' : {'statusId': 5, 'pt-br': 'Sua Localização', 'en': 'Your Location', 'color': fontColor},
         }
 }
+
+dict_availabilityStatus = dict_columns['AvailabilityStatus']
 
 dict_rename = {
     'availability': 'availability',
@@ -94,7 +94,7 @@ def map_availability(row, key):
     else:
         status = 'Available'
     
-    return dict_availabilityStatus['AvailabilityStatus'][status][key]
+    return dict_availabilityStatus[status][key]
 
 def create_link(row):
     icons = f"{row['pet_icon']}"
@@ -126,20 +126,11 @@ def get_formated_data():
     # Order by 'updatedAt' DESC
     df = df.sort_values(by='updatedAt', ascending=False)
     # Add availability
-    # df['availability'] = df.apply(lambda row: 'Consultar' if pd.isnull(row['capacity']) or pd.isnull(row['shelteredPeople']) 
-    #                                     else ('Lotado' if row['shelteredPeople'] > row['capacity'] 
-    #                                     else ('Cheio' if row['shelteredPeople'] == row['capacity'] 
-    #                                     else 'Disponível')), axis=1)
-
     df['availability'] = df.apply(lambda row: map_availability(row, 'statusId'), axis=1)
-
-        # Aplicar a função ao DataFrame
-    #df['availability_id'] = df.apply(lambda row: map_availability(row, language), axis=1)
-    #df['availability_en'] = df.apply(lambda row: map_availability(row, 'en'), axis=1)
-    
     # Group cities that have less then 5% to 'Outras'
-    city_counts = df['city'].fillna('Desconhecida').value_counts(normalize=True)
-    df['city_grouped'] = df['city'].fillna('Desconhecida').apply(lambda x: x if city_counts[x] >= 0.05 else 'Outras Cidades')
+    #city_counts = df['city'].fillna('Desconhecida').value_counts(normalize=True)
+    #TODO: fix this translation
+    #df['city_grouped'] = df['city'].fillna('Desconhecida').apply(lambda x: x if city_counts[x] >= 0.05 else 'Outras Cidades')
     # Drop columns
     df.drop(['pix','street','neighbourhood','streetNumber','prioritySum','zipCode','createdAt'], axis=1, inplace=True)
     # Rename Columns
@@ -254,7 +245,7 @@ app.layout = dbc.Container([
     style={'padding': '10px'}),
     #Title
     dbc.Row([
-        dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
+        dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center', 'font-family': 'Georgia, serif'}), width=12)
     ], style={'textAlign': 'center', 'margin-bottom': '5px'}),
     #Last Update
     dbc.Row([
@@ -427,22 +418,22 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_o
     last_update_time = f"{dict_columns['UpdatedAt'][language]}: {get_last_update_time()}"
 
     availability_options = [
-        {'label': dict_columns.get('All').get(language), 'value': dict_columns.get('All').get(language)},
-        {'label': dict_availabilityStatus['AvailabilityStatus']['Available'][language], 'value': dict_availabilityStatus['AvailabilityStatus']['Available']['statusId']},
-        {'label': dict_availabilityStatus['AvailabilityStatus']['Check'][language], 'value': dict_availabilityStatus['AvailabilityStatus']['Check']['statusId']},
-        {'label': dict_availabilityStatus['AvailabilityStatus']['Crowded'][language], 'value': dict_availabilityStatus['AvailabilityStatus']['Crowded']['statusId']},
-        {'label': dict_availabilityStatus['AvailabilityStatus']['Full'][language], 'value': dict_availabilityStatus['AvailabilityStatus']['Full']['statusId']},
+        {'label': dict_columns['All'][language], 'value': dict_columns['All'][language]},
+        {'label': dict_availabilityStatus['Available'][language], 'value': dict_availabilityStatus['Available']['statusId']},
+        {'label': dict_availabilityStatus['Check'][language], 'value': dict_availabilityStatus['Check']['statusId']},
+        {'label': dict_availabilityStatus['Crowded'][language], 'value': dict_availabilityStatus['Crowded']['statusId']},
+        {'label': dict_availabilityStatus['Full'][language], 'value': dict_availabilityStatus['Full']['statusId']},
     ]
     
     availability_values = [
-        dict_availabilityStatus['AvailabilityStatus']['Available']['statusId'],
-        dict_availabilityStatus['AvailabilityStatus']['Check']['statusId']
+        dict_availabilityStatus['Available']['statusId'],
+        dict_availabilityStatus['Check']['statusId']
     ]
 
     simple_options = [
-        {'label': dict_columns.get('Yes').get(language), 'value': True},
-        {'label': dict_columns.get('No').get(language), 'value': False},
-        {'label': dict_columns.get('All').get(language), 'value': dict_columns['All'][language]}
+        {'label': dict_columns['Yes'][language], 'value': True},
+        {'label': dict_columns['No'][language], 'value': False},
+        {'label': dict_columns['All'][language], 'value': dict_columns['All'][language]}
     ]
     
     verification_options = simple_options
@@ -457,23 +448,23 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_o
 
     city_values = dict_columns['AllCities'][language]
     
-    return (f"{dict_columns.get('Shelter').get(language)}s - Rio Grande do Sul",
-            dict_columns.get('Search').get(language),
-            dict_columns.get('City').get(language)+':',
+    return (f"{dict_columns['Shelter'][language]}s - Rio Grande do Sul",
+            dict_columns['Search'][language],
+            dict_columns['City'][language]+':',
             city_options,
             city_values,
-            dict_columns.get('Availability').get(language)+':',
+            dict_columns['Availability'][language]+':',
             availability_options,
             availability_values,
-            dict_columns.get('VerificationStatus').get(language)+':',
+            dict_columns['VerificationStatus'][language]+':',
             verification_options,
             verification_values,
-            dict_columns.get('Pet').get(language)+':',
+            dict_columns['Pet'][language]+':',
             pet_options,
             pet_values,
-            dict_columns.get('Hide').get(language),
-            dict_columns.get('Hide').get(language),
-            dict_columns.get('Hide').get(language),
+            dict_columns['Hide'][language],
+            dict_columns['Hide'][language],
+            dict_columns['Hide'][language],
             last_update_time)
 
 @app.callback(
@@ -522,22 +513,15 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
 
     if dict_columns['All'][language] != pet:
         filtered_df = filtered_df[filtered_df['petFriendly'] == pet]
-
-
-    # Pie Graph
-    city_distribution = px.pie(
-        filtered_df,
-        names='city_grouped',
-        hole=0.25,
-        color_discrete_sequence=px.colors.qualitative.Plotly
-    )
-    city_distribution.update_layout(
-        title_font_color=fontColor,
-        font_color=fontColor,
-        paper_bgcolor=backgroundColor,
-        plot_bgcolor=fontColor,
-    )
     
+    # Text
+    tex_style = {'color': fontColor, 'fontWeight': 'bold'}
+    num_shelters = html.P(f"{dict_columns['AmountOfShelters'][language]}: {len(filtered_df)}", style=tex_style)
+    total_people = html.P(f"{dict_columns['AmountOfPeopleSheltered'][language]}: {int(filtered_df['shelteredPeople'].sum())}", style=tex_style)
+    verified_shelters = html.P(f"{dict_columns['SheltersVerified'][language]}: {len(filtered_df[filtered_df['verified']])}", style=tex_style)
+    not_verified_shelters = html.P(f"{dict_columns['SheltersNotVerified'][language]}: {len(filtered_df[~filtered_df['verified']])}", style=tex_style)
+    pet_friendly_shelters = html.P(f"{dict_columns['PetFriendly'][language]}: {filtered_df['petFriendly'].sum()}", style=tex_style)
+
     # Map Graph
     lat = session.get('lat')
     lon = session.get('lon')
@@ -546,64 +530,53 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     new_point = pd.DataFrame({
     'latitude': [lat],
     'longitude': [lon],
-    'name': dict_availabilityStatus['AvailabilityStatus']['Location'][language],
+    'name': dict_availabilityStatus['Location'][language],
     'city': city,
     'capacity': '',
     'shelteredPeople': '',
-    'availabilityDescription': dict_availabilityStatus['AvailabilityStatus']['Location'][language]
+    'availabilityDescription': dict_availabilityStatus['Location'][language]
     })
 
     labels = {
         'latitude': 'Latitude',
         'longitude': 'Longitude',
-        'name': dict_columns.get('Shelter').get(language),
-        'city': dict_columns.get('City').get(language),
-        'capacity': dict_columns.get('Capacity').get(language),
-        'shelteredPeople': dict_columns.get('AmountOfPeopleSheltered').get(language),
-        'availabilityDescription': dict_columns.get('Availability').get(language)
+        'name': dict_columns['Shelter'][language],
+        'city': dict_columns['City'][language],
+        'capacity': dict_columns['Capacity'][language],
+        'shelteredPeople': dict_columns['AmountOfPeopleSheltered'][language],
+        'availabilityDescription': dict_columns['Availability'][language]
     }
+
+    hover_columns = ['city', 'capacity', 'shelteredPeople', 'availabilityDescription']
 
     filtered_df['availabilityDescription'] = filtered_df.apply(lambda row: map_availability(row, language), axis=1)
 
-    updated_data = pd.concat([filtered_df, new_point], ignore_index=True)
+    map_df = pd.concat([filtered_df, new_point], ignore_index=True)
 
-    updated_data[['city', 'capacity', 'shelteredPeople', 'availabilityDescription']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availabilityDescription']].fillna("")
+    map_df[hover_columns] = map_df[hover_columns].fillna("")
+
+    color_availability={
+            dict_availabilityStatus['Available'][language]: dict_availabilityStatus['Available']['color'],
+            dict_availabilityStatus['Check'][language]: dict_availabilityStatus['Check']['color'],
+            dict_availabilityStatus['Crowded'][language] : dict_availabilityStatus['Crowded']['color'],
+            dict_availabilityStatus['Full'][language]: dict_availabilityStatus['Full']['color'],
+            dict_availabilityStatus['Location'][language]: dict_availabilityStatus['Location']['color']
+        }
 
     fig = px.scatter_mapbox(
-        updated_data,
+        map_df,
         lat="latitude",
         lon="longitude",
         hover_name="name",
-        #hover_data={'customdata': False},  # Desabilita hover_data padrão para customdata
-        hover_data={'city': True, 'capacity': True, 'shelteredPeople': True, 'availabilityDescription': True},
-        #custom_data=['city', 'capacity', 'shelteredPeople', 'availability_en'],
+        hover_data=hover_columns, #{'city': True, 'capacity': True, 'shelteredPeople': True, 'availabilityDescription': True},
         color="availabilityDescription",
-        color_discrete_map={
-            dict_availabilityStatus['AvailabilityStatus']['Available'][language]: dict_availabilityStatus['AvailabilityStatus']['Available']['color'],
-            dict_availabilityStatus['AvailabilityStatus']['Check'][language]: dict_availabilityStatus['AvailabilityStatus']['Check']['color'],
-            dict_availabilityStatus['AvailabilityStatus']['Crowded'][language] : dict_availabilityStatus['AvailabilityStatus']['Crowded']['color'],
-            dict_availabilityStatus['AvailabilityStatus']['Full'][language]: dict_availabilityStatus['AvailabilityStatus']['Full']['color'],
-            dict_availabilityStatus['AvailabilityStatus']['Location'][language]: dict_availabilityStatus['AvailabilityStatus']['Location']['color']
-        },
+        color_discrete_map=color_availability,
         labels=labels,
         zoom=9,
     )
 
     fig.update_traces(marker=dict(size=12))  # PIN size
-
-    # # Atualizar layout para exibir customdata corretamente
-    # fig.update_traces(
-    #     hovertemplate="<br>".join([
-    #         "Nome: %{hovertext}",
-    #         "Cidade: %{customdata[0]}",
-    #         "Capacidade: %{customdata[1]}",
-    #         "Pessoas Alojadas: %{customdata[2]}",
-    #         "Disponibilidade (EN): %{customdata[3]}"
-    #     ])
-    # )
-
-    fig.update_layout(mapbox_style=map_style)
-    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor=backgroundColor)
+    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor=backgroundColor, mapbox_style=map_style)
     fig.update_layout( 
         legend=dict( 
             x=0, 
@@ -614,23 +587,44 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
                 size=12, 
                 color=fontColor
             ), 
-            title_text=""
+            #title_text=""
         ) 
     ) 
-    
-    num_shelters = html.P(f"{dict_columns.get('AmountOfShelters').get(language)}: {len(filtered_df)}", style={'color': fontColor, 'fontWeight': 'bold'})
-    total_people = html.P(f"{dict_columns.get('AmountOfPeopleSheltered').get(language)}: {int(filtered_df['shelteredPeople'].sum())}", style={'color': fontColor, 'fontWeight': 'bold'})
-    verified_shelters = html.P(f"{dict_columns.get('SheltersVerified').get(language)}: {len(filtered_df[filtered_df['verified']])}", style={'color': fontColor, 'fontWeight': 'bold'})
-    not_verified_shelters = html.P(f"{dict_columns.get('SheltersNotVerified').get(language)}: {len(filtered_df[~filtered_df['verified']])}", style={'color': fontColor, 'fontWeight': 'bold'})
-    pet_friendly_shelters = html.P(f"{dict_columns.get('PetFriendly').get(language)}: {filtered_df['petFriendly'].sum()}", style={'color': fontColor, 'fontWeight': 'bold'})
 
+    # Pie Graph
+    pie_df = map_df.loc[map_df['availabilityDescription'] != dict_availabilityStatus['Location'][language]]
+
+    category_counts = pie_df['availabilityDescription'].value_counts().reset_index()
+    category_counts.columns = ['availabilityDescription', 'count']
+    
+    city_distribution = px.pie(
+        category_counts,
+        names='availabilityDescription',
+        values='count',
+        hole=0.25,
+        color='availabilityDescription',
+        color_discrete_map=color_availability,
+    )
+
+    city_distribution.update_layout(
+        title_font_color=fontColor,
+        font_color=fontColor,
+        paper_bgcolor=backgroundColor,
+        plot_bgcolor=fontColor,
+    )
+
+    city_distribution.update_traces(
+    hovertemplate='%{label}: %{value} <extra></extra>'
+    )
+
+    # Table
     shelter_table = dash_table.DataTable(
         columns=[
-            {"name": f"{dict_columns.get('Shelter').get(language)}", "id": "link", "presentation": "markdown"},
-            {"name": f"{dict_columns.get('Address').get(language)}", "id": "address"},
-            {"name": f"{dict_columns.get('City').get(language)}", "id": "city"},
-            {"name": f"{dict_columns.get('Capacity').get(language)}", "id": "capacity_info"},
-            {"name": f"{dict_columns.get('UpdatedAt').get(language)}", "id": "updatedAt"},
+            {"name": f"{dict_columns['Shelter'][language]}", "id": "link", "presentation": "markdown"},
+            {"name": f"{dict_columns['Address'][language]}", "id": "address"},
+            {"name": f"{dict_columns['City'][language]}", "id": "city"},
+            {"name": f"{dict_columns['Capacity'][language]}", "id": "capacity_info"},
+            {"name": f"{dict_columns['UpdatedAt'][language]}", "id": "updatedAt"},
         ],
         data=filtered_df.to_dict('records'),
         sort_action='native',
@@ -653,14 +647,14 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
             {'if': {'column_id': 'updatedAt'}, 'width': '5%'}, 
         ],
         style_data_conditional=[
-            {'if': {'filter_query': f'{{availability}} = "{dict_availabilityStatus["AvailabilityStatus"]["Check"]["statusId"]}"'},
-                'backgroundColor': dict_availabilityStatus["AvailabilityStatus"]["Check"]["color"]},
-            {'if': {'filter_query': f'{{availability}} = "{dict_availabilityStatus["AvailabilityStatus"]["Available"]["statusId"]}"'},
-                'backgroundColor': dict_availabilityStatus["AvailabilityStatus"]["Available"]["color"]},
-            {'if': {'filter_query': f'{{availability}} = "{dict_availabilityStatus["AvailabilityStatus"]["Crowded"]["statusId"]}"'},
-                'backgroundColor': dict_availabilityStatus["AvailabilityStatus"]["Crowded"]["color"]},
-            {'if': {'filter_query': f'{{availability}} = "{dict_availabilityStatus["AvailabilityStatus"]["Full"]["statusId"]}"'},
-                'backgroundColor': dict_availabilityStatus["AvailabilityStatus"]["Full"]["color"]},
+            {'if': {'filter_query': f'{{availability}} = "{dict_columns["AvailabilityStatus"]["Check"]["statusId"]}"'},
+                'backgroundColor': dict_columns["AvailabilityStatus"]["Check"]["color"]},
+            {'if': {'filter_query': f'{{availability}} = "{dict_columns["AvailabilityStatus"]["Available"]["statusId"]}"'},
+                'backgroundColor': dict_columns["AvailabilityStatus"]["Available"]["color"]},
+            {'if': {'filter_query': f'{{availability}} = "{dict_columns["AvailabilityStatus"]["Crowded"]["statusId"]}"'},
+                'backgroundColor': dict_columns["AvailabilityStatus"]["Crowded"]["color"]},
+            {'if': {'filter_query': f'{{availability}} = "{dict_columns["AvailabilityStatus"]["Full"]["statusId"]}"'},
+                'backgroundColor': dict_columns["AvailabilityStatus"]["Full"]["color"]},
     ]
 
     )
