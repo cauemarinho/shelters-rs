@@ -146,11 +146,11 @@ def get_formated_data():
     df.rename(columns=dict_rename, inplace=True)
     return df
 
-def data_cities(df):
+def data_cities(df, language):
     df['city'] = df['city'].fillna('').astype(str)
     cities = df['city'].unique()
     city_options = [{'label': city, 'value': city} for city in cities if city is not None]
-    city_options.insert(0, {'label': 'Todas as Cidades', 'value': 'Todas as Cidades'})
+    city_options.insert(0, {'label': dict_columns['AllCities'][language], 'value': dict_columns['AllCities'][language]})
     city_options = sorted(city_options, key=lambda x: x['label'])
     return city_options
 
@@ -206,7 +206,6 @@ def get_user_language_and_location(): #TODO: fix this function
         return 'en', -30.0290596, -51.2345029, "Perth", "Australia/Perth" #values for test in DEV
 
 df = get_formated_data()
-city_options = data_cities(df)
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 server = app.server
@@ -266,7 +265,6 @@ app.layout = dbc.Container([
         dbc.Col(dcc.Input(
             id='search-filter',
             type='text',
-            placeholder=f"{dict_columns.get('Search').get('en')}", 
             className='responsive-input', 
             style={'textAlign': 'center'}
         ))
@@ -277,8 +275,6 @@ app.layout = dbc.Container([
             html.Label(id='city-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='city-filter',
-                options=city_options,
-                value=['Todas as Cidades'],
                 multi=True,
                 clearable=True,
                 style={'color': 'black'}
@@ -288,18 +284,6 @@ app.layout = dbc.Container([
             html.Label(id='availability-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='availability-filter',
-                options=[
-                    {'label': dict_columns.get('All').get('en'), 'value': dict_columns.get('All').get('en')},
-                    {'label': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get('en')}", 
-                            'value': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get('statusId')}"},
-                    {'label': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Check').get('en')}", 
-                            'value': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Check').get('statusId')}"},
-                    {'label': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Crowded').get('en')}", 
-                            'value': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Crowded').get('statusId')}"},
-                    {'label': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Full').get('en')}", 
-                            'value': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Full').get('statusId')}"},       
-                ],
-                value=[f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get('en')}", f"{dict_availabilityStatus.get('AvailabilityStatus').get('Check').get('en')}"],
                 multi=True,
                 clearable=True,
                 style={'color': 'black'}
@@ -309,12 +293,6 @@ app.layout = dbc.Container([
             html.Label(id='verification-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='verification-filter',
-                options=[
-                    {'label': 'Sim', 'value': True},
-                    {'label': 'Não', 'value': False},
-                    {'label': 'Todos', 'value': 'Todos'}
-                ],
-                value='Todos',
                 clearable=False,
                 style={'color': 'black'}
             )
@@ -323,12 +301,6 @@ app.layout = dbc.Container([
             html.Label(id='pet-label', style={'color': fontColor}),
             dcc.Dropdown(
                 id='pet-filter',
-                options=[
-                    {'label': 'Sim', 'value': True},
-                    {'label': 'Não', 'value': False},
-                    {'label': 'Todos', 'value': 'Todos'}
-                ],
-                value='Todos',
                 clearable=False,
                 style={'color': 'black'}
             )
@@ -413,12 +385,17 @@ def hide_city_distribution(n_clicks, current_style):
     [Output('title', 'children'),
      Output('search-filter', 'placeholder'),
      Output('city-label', 'children'),
+     Output('city-filter', 'options'),
+     Output('city-filter', 'value'),
      Output('availability-label', 'children'),
      Output('availability-filter', 'options'),
      Output('availability-filter', 'value'),
      Output('verification-label', 'children'),
+     Output('verification-filter', 'options'),
+     Output('verification-filter', 'value'),
      Output('pet-label', 'children'),
-     Output('city-filter', 'options'),
+     Output('pet-filter', 'options'),
+     Output('pet-filter', 'value'),
      Output('hide-info', 'children'),
      Output('hide-map', 'children'),
      Output('hide-city-distribution', 'children'),
@@ -427,20 +404,26 @@ def hide_city_distribution(n_clicks, current_style):
      Input('en', 'n_clicks')],
     [State('search-filter', 'placeholder'),
      State('city-label', 'children'),
+     State('city-filter', 'options'),
+     State('city-filter', 'value'),
      State('availability-label', 'children'),
      State('availability-filter', 'options'),
      State('availability-filter', 'value'),
      State('verification-label', 'children'),
-     State('pet-label', 'children')]
+     State('verification-filter', 'options'),
+     State('verification-filter', 'value'),
+     State('pet-label', 'children'),
+     State('pet-filter', 'options'),
+     State('pet-filter', 'value')]
 )
-def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availability_label, availability_options, availability_values, verification_label, pet_label):
+def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_options, city_values, availability_label, availability_options, availability_values,  verification_label, verification_options, verification_values, pet_label, pet_options, pet_values):
     language = session.get('language', 'en')
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
     elif pt_clicks and (not en_clicks or pt_clicks > en_clicks):
         language = 'pt-br'
     
-    city_options = data_cities(df)
+    city_options = data_cities(df,language)
     last_update_time = f"{dict_columns['UpdatedAt'][language]}: {get_last_update_time()}"
 
     availability_options = [
@@ -455,16 +438,39 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
         dict_availabilityStatus['AvailabilityStatus']['Available']['statusId'],
         dict_availabilityStatus['AvailabilityStatus']['Check']['statusId']
     ]
+
+    simple_options = [
+        {'label': dict_columns.get('Yes').get(language), 'value': True},
+        {'label': dict_columns.get('No').get(language), 'value': False},
+        {'label': dict_columns.get('All').get(language), 'value': dict_columns['All'][language]}
+    ]
+    
+    verification_options = simple_options
+
+    pet_options = simple_options
+
+    simple_values = dict_columns['All'][language]
+
+    verification_values = simple_values
+
+    pet_values = simple_values
+
+    city_values = dict_columns['AllCities'][language]
     
     return (f"{dict_columns.get('Shelter').get(language)}s - Rio Grande do Sul",
             dict_columns.get('Search').get(language),
             dict_columns.get('City').get(language)+':',
+            city_options,
+            city_values,
             dict_columns.get('Availability').get(language)+':',
             availability_options,
             availability_values,
             dict_columns.get('VerificationStatus').get(language)+':',
+            verification_options,
+            verification_values,
             dict_columns.get('Pet').get(language)+':',
-            city_options,
+            pet_options,
+            pet_values,
             dict_columns.get('Hide').get(language),
             dict_columns.get('Hide').get(language),
             dict_columns.get('Hide').get(language),
@@ -505,17 +511,17 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
             )
         ]
 
-    if 'Todas as Cidades' not in city and len(city) > 0:
+    if dict_columns['AllCities'][language] not in city and len(city) > 0:
         filtered_df = filtered_df[filtered_df['city'].isin(city)]
 
-    if dict_columns.get('All').get(language) not in availability and len(availability) > 0:
+    if dict_columns['All'][language] not in availability and len(availability) > 0:
         filtered_df = filtered_df[filtered_df['availability'].isin(availability)]
     
-    if pet != 'Todos':
-        filtered_df = filtered_df[filtered_df['petFriendly'] == pet]
-    
-    if verification != 'Todos':
+    if dict_columns['All'][language] != verification:
         filtered_df = filtered_df[filtered_df['verified'] == verification]
+
+    if dict_columns['All'][language] != pet:
+        filtered_df = filtered_df[filtered_df['petFriendly'] == pet]
 
 
     # Pie Graph
@@ -546,7 +552,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     'shelteredPeople': '',
     'availabilityDescription': dict_availabilityStatus['AvailabilityStatus']['Location'][language]
     })
-    
+
     labels = {
         'latitude': 'Latitude',
         'longitude': 'Longitude',
