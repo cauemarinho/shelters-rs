@@ -61,8 +61,8 @@ dict_availabilityStatus = {
     'AvailabilityStatus': {
         'Available' : {'statusId': 1, 'pt-br': 'Disponível', 'en': 'Available', 'color':'#2ECC40'},
         'Check' : {'statusId': 2, 'pt-br': 'Consultar', 'en': 'Check', 'color':'#00BFFF'},
-        'Crowded' : {'statusId': 3, 'pt-br': 'Cheio', 'en': 'Crowded', 'color':'#FF851B'},
-        'Full' : {'statusId': 4, 'pt-br': 'Lotado', 'en': 'Full', 'color':'#FF4136'},
+        'Crowded' : {'statusId': 3, 'pt-br': 'Cheio', 'en': 'Crowded', 'color':'#FFB347'},
+        'Full' : {'statusId': 4, 'pt-br': 'Lotado', 'en': 'Full', 'color':'#FF6347'},
         'Location' : {'statusId': 5, 'pt-br': 'Sua Localização', 'en': 'Your Location', 'color': fontColor},
         }
 }
@@ -186,14 +186,15 @@ def get_user_language_and_location(): #TODO: fix this function
     try:
         if os.getenv('FLASK_ENV') == 'production':
             ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
+            response = requests.get(f'https://ipinfo.io/{ip}/json').json()
         else:
             ip = "193.19.205.186"
-        response = requests.get(f'https://ipinfo.io/{ip}/json')
-        loc = response.json().get('loc')
-        country = response.json().get('country')
-        city = response.json().get('city')
-        timezone = response.json().get('timezone')
-        print(f"{response.json()}")
+            response = {'ip': '193.19.205.186', 'city': 'São Paulo', 'region': 'São Paulo', 'country': 'BR', 'loc': '-23.5475,-46.6361', 'org': 'AS203020 HostRoyale Technologies Pvt Ltd', 'postal': '01000-000', 'timezone': 'America/Sao_Paulo', 'readme': 'https://ipinfo.io/missingauth'}
+        loc = response.get('loc')
+        country = response.get('country')
+        city = response.get('city')
+        timezone = response.get('timezone')
+        print(f"{response}")
         if loc:
             lat, lon = loc.split(',')
             return ('pt-br' if country == 'BR' else 'en', float(lat), float(lon), city, timezone)
@@ -255,11 +256,11 @@ app.layout = dbc.Container([
     #Title
     dbc.Row([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center'}), width=12)
-    ], style={'textAlign': 'center'}),
+    ], style={'textAlign': 'center', 'margin-bottom': '5px'}),
     #Last Update
     dbc.Row([
         dbc.Col(html.Div(id='last-update-div'), width=12)
-    ], style={'textAlign': 'center', 'marginTop': '10px'}),
+    ], style={'textAlign': 'center', 'margin-bottom': '5px'}),
     #Search
     dbc.Row([
         dbc.Col(dcc.Input(
@@ -268,8 +269,8 @@ app.layout = dbc.Container([
             placeholder=f"{dict_columns.get('Search').get('en')}", 
             className='responsive-input', 
             style={'textAlign': 'center'}
-        ), width=12)
-    ], className='dropdown-div', style={'padding': '10px', 'borderRadius': '5px', 'textAlign': 'center'}),
+        ))
+    ], style={'textAlign': 'center', 'margin-bottom': '5px'}),
     #Filters
     dbc.Row([
         dbc.Col([
@@ -282,7 +283,7 @@ app.layout = dbc.Container([
                 clearable=True,
                 style={'color': 'black'}
             )
-        ], xs=12, sm=12, md=6, lg=3, className="mb-3"), 
+        ], xs=12, sm=12, md=6, lg=3, className="mb-1"), 
         dbc.Col([
             html.Label(id='availability-label', style={'color': fontColor}),
             dcc.Dropdown(
@@ -303,7 +304,7 @@ app.layout = dbc.Container([
                 clearable=True,
                 style={'color': 'black'}
             )
-        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
+        ], xs=12, sm=12, md=6, lg=3, className="mb-1"),
         dbc.Col([
             html.Label(id='verification-label', style={'color': fontColor}),
             dcc.Dropdown(
@@ -317,7 +318,7 @@ app.layout = dbc.Container([
                 clearable=False,
                 style={'color': 'black'}
             )
-        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
+        ], xs=12, sm=12, md=6, lg=3, className="mb-1"),
         dbc.Col([
             html.Label(id='pet-label', style={'color': fontColor}),
             dcc.Dropdown(
@@ -331,14 +332,14 @@ app.layout = dbc.Container([
                 clearable=False,
                 style={'color': 'black'}
             )
-        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
-    ], style={'backgroundColor': backgroundColor, 'padding': '10px', 'borderRadius': '5px'}
+        ], xs=12, sm=12, md=6, lg=3, className="mb-1"),
+    ], style={'backgroundColor': backgroundColor, 'margin-bottom': '5px'}
     ),
     #Graphs
     dbc.Row([
        dbc.Col([
-            dbc.Button(id="hide-info", className="mb-2"),
-            dbc.Row(dbc.Col(id='num-shelters-div')),
+            dbc.Button(id="hide-info"),
+            dbc.Row(dbc.Col(id='num-shelters-div'), style={'margin-top': '5px'}),
             dbc.Row(dbc.Col(id='verified-shelters-div')),
             dbc.Row(dbc.Col(id='not-verified-shelters-div')),
             dbc.Row(dbc.Col(id='pet-friendly-shelters-div')),
@@ -346,14 +347,14 @@ app.layout = dbc.Container([
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"
         ),
         dbc.Col([
-            dbc.Button(id="hide-map", className="mb-2"),
+            dbc.Button(id="hide-map"),
             dcc.Graph(id='map', style={'display': 'block'})
-        ], xs=12, sm=12, md=6, lg=6, className="mb-3"),
+        ], xs=12, sm=12, md=6, lg=6, className="mb-3", style={'margin-bottom': '10px'}),
         dbc.Col([
-            dbc.Button(id="hide-city-distribution", className="mb-2"),
+            dbc.Button(id="hide-city-distribution"),
             dcc.Graph(id='city-distribution', style={'display': 'block'})
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
-        ], 
+        ], style={'backgroundColor': backgroundColor, 'textAlign': 'center', 'margin-bottom': '5px'} 
     ),
     #Table
     dbc.Row([
@@ -469,8 +470,6 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
             dict_columns.get('Hide').get(language),
             last_update_time)
 
-
-
 @app.callback(
     [Output('map', 'figure'),
      Output('city-distribution', 'figure'),
@@ -532,8 +531,8 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         paper_bgcolor=backgroundColor,
         plot_bgcolor=fontColor,
     )
+    
     # Map Graph
-
     lat = session.get('lat')
     lon = session.get('lon')
     city = session.get('city')
@@ -547,9 +546,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     'shelteredPeople': '',
     'availabilityDescription': dict_availabilityStatus['AvailabilityStatus']['Location'][language]
     })
-
-    #new_point = new_point.astype({'latitude': 'float64', 'longitude': 'float64'})
-
+    
     labels = {
         'latitude': 'Latitude',
         'longitude': 'Longitude',
