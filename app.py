@@ -23,7 +23,7 @@ client = redis.Redis.from_url(redis_url)
 COLORS = 1
 SECRET_KEY = generate_secret_key()
 PAGE_SIZE = 25
-CALL_API_MINUTES = 60
+CALL_API_MINUTES = 30
 DEFAULT_LANGUAGE = 'pt-br'
 
 dict_config = {
@@ -37,6 +37,8 @@ map_style = dict_config[COLORS]["map_style"]
 font_family = dict_config[COLORS]["font-family"]
 
 dict_columns = {
+    'Vacancies': {'pt-br': 'Vagas', 'en': 'Vacancies'},
+    'Distance': {'pt-br': 'Distancia', 'en': 'Distance'},
     'Hide': {'pt-br': 'Esconder', 'en': 'Hide'},
     'Yes': {'pt-br': 'Sim', 'en': 'Yes'},
     'No': {'pt-br': 'Não', 'en': 'No'},
@@ -81,7 +83,7 @@ def get_data():
         with open('shelters.json', 'r') as file:
             return json.load(file)
 
-def haversine(lon1, lat1, lon2, lat2):
+def distance_haversine(lon1, lat1, lon2, lat2):
     """
     Calcular a distância entre duas coordenadas (lon1, lat1) e (lon2, lat2) usando a fórmula do Haversine.
     A distância é retornada em quilômetros.
@@ -103,11 +105,10 @@ def haversine(lon1, lat1, lon2, lat2):
     # Calcular a distância
     distance = c * r
 
-    return distance
-
-def format_date(data_original):
-    data_datetime = pd.to_datetime(data_original)
-    return data_datetime.strftime("%d/%m/%Y %H:%M:%S")
+    if math.isnan(distance):
+        return ["",distance]
+    else:
+        return [f"{round(distance, 1)} Km",distance]
 
 def map_availability(row, key):
     if pd.isnull(row['capacity']) or pd.isnull(row['shelteredPeople']):
@@ -129,6 +130,12 @@ def format_date(data_original):
     data_datetime = pd.to_datetime(data_original)
     return data_datetime.strftime("%d/%m/%Y %H:%M:%S")
 
+def calculate_vacancies(row):
+    if row['capacity'] >= 0 and row['shelteredPeople'] >= 0:
+        return row['capacity'] - row['shelteredPeople']
+    else:
+        return "-"
+
 def get_formated_data():
     df = pd.json_normalize(get_data())
     # Filter actived shelters
@@ -139,6 +146,8 @@ def get_formated_data():
     df['verification_icon'] = df['verified'].apply(lambda x: '✔️' if x else '❌')
     # Create a new column for capacity information
     df['capacity_info'] = df.apply(lambda row: f"{int(row['shelteredPeople']) if pd.notnull(row['shelteredPeople']) else '-'}/{int(row['capacity']) if pd.notnull(row['capacity']) else '-'}", axis=1)
+    #
+    df['vacancies'] = df.apply(calculate_vacancies, axis=1)
     # link Column to create hyperlink
     df['link'] = df.apply(create_link, axis=1)
     # Convert shelter_supplies to str
@@ -542,8 +551,20 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     session_lon = session.get('lon')
     session_city = session.get('city')
 
-    filtered_df['distance_km'] = filtered_df.apply(lambda row: haversine(row['latitude'], row['longitude'], session_lat, session_lon), axis=1)
+    filtered_df['availabilityDescription'] = filtered_df.apply(lambda row: map_availability(row, language), axis=1)
+    filtered_df[['distance_km','distance_km2']] = filtered_df.apply(lambda row: distance_haversine(row['latitude'], row['longitude'], session_lat, session_lon), axis=1, result_type='expand')
+    # Change column to cateforical to sort by 
+    # custom_order = [
+    #     dict_availabilityStatus['Available'][language],
+    #     dict_availabilityStatus['Check'][language],
+    #     dict_availabilityStatus['Crowded'][language],
+    #     dict_availabilityStatus['Full'][language]
+    #     ]
+    # filtered_df['availabilityDescription'] = pd.Categorical(filtered_df['availabilityDescription'], categories=custom_order, ordered=True)
 
+    # Sort df by distance
+    filtered_df = filtered_df.sort_values(by=['distance_km2'], ascending=[ True], na_position='last')
+    
     # Text
     tex_style = {'color': fontColor, 'fontWeight': 'bold'}
     num_shelters = html.P(f"{dict_columns['AmountOfShelters'][language]}: {len(filtered_df)}", style=tex_style)
@@ -574,8 +595,6 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     }
 
     hover_columns = ['city', 'capacity', 'shelteredPeople', 'availabilityDescription']
-
-    filtered_df['availabilityDescription'] = filtered_df.apply(lambda row: map_availability(row, language), axis=1)
 
     map_df = pd.concat([filtered_df, new_point], ignore_index=True)
 
@@ -661,10 +680,11 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         columns=[
             {"name": f"{dict_columns['Shelter'][language]}", "id": "link", "presentation": "markdown"},
             {"name": f"{dict_columns['Address'][language]}", "id": "address"},
-            {"name": f"{dict_columns['City'][language]}", "id": "city"},
-            {"name": f"{dict_columns['Capacity'][language]}", "id": "capacity_info"},
+            #{"name": f"{dict_columns['Availability'][language]}", "id": "availabilityDescription"},
+            {"name": f"{dict_columns['Capacity'][language]}", "id": "capacity_info", "sort_as_null": ["-/-"]},
+            {"name": f"{dict_columns['Vacancies'][language]}", "id": "vacancies", "sort_as_null": ["-"]},
+            {"name": f"{dict_columns['Distance'][language]}", "id": "distance_km", "sort_as_null": [""]},
             {"name": f"{dict_columns['UpdatedAt'][language]}", "id": "updatedAt"},
-            #{"name": f"Distance", "id": "distance_km"}
         ],
         data=filtered_df.to_dict('records'),
         sort_action='native',
@@ -682,9 +702,11 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         style_cell_conditional=[
             {'if': {'column_id': 'link'}, 'width': '25%'},
             {'if': {'column_id': 'address'}, 'width': '25%'},
-            {'if': {'column_id': 'city'}, 'width': '5%'},
-            {'if': {'column_id': 'capacity_info'}, 'width': '5%'},
+            #{'if': {'column_id': 'availabilityDescription'}, 'width': '5%'},
+            {'if': {'column_id': 'capacity_info'}, 'width': '3%'},
+            {'if': {'column_id': 'vacancies'}, 'width': '5%'},
             {'if': {'column_id': 'updatedAt'}, 'width': '5%'}, 
+            {'if': {'column_id': 'distance_km'}, 'width': '5%'}, 
         ],
         style_data_conditional=[
             {'if': {'filter_query': f'{{availability}} = "{dict_columns["AvailabilityStatus"]["Check"]["statusId"]}"'},
