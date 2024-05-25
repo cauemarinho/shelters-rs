@@ -1,4 +1,5 @@
 import os
+import math
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -80,6 +81,30 @@ def get_data():
         with open('shelters.json', 'r') as file:
             return json.load(file)
 
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calcular a distância entre duas coordenadas (lon1, lat1) e (lon2, lat2) usando a fórmula do Haversine.
+    A distância é retornada em quilômetros.
+    """
+    # Converter graus para radianos
+    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+
+    # Diferenças das coordenadas
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    # Fórmula do Haversine
+    a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+    c = 2 * math.asin(math.sqrt(a))
+
+    # Raio da Terra em quilômetros (use 3956 para milhas)
+    r = 6371
+
+    # Calcular a distância
+    distance = c * r
+
+    return distance
+
 def format_date(data_original):
     data_datetime = pd.to_datetime(data_original)
     return data_datetime.strftime("%d/%m/%Y %H:%M:%S")
@@ -117,8 +142,9 @@ def get_formated_data():
     # link Column to create hyperlink
     df['link'] = df.apply(create_link, axis=1)
     # Convert shelter_supplies to str
-    df['shelter_supplies_str'] = df['shelterSupplies'].apply(lambda x: ', '.join([supply['supply']['name'] for supply in x]))
-    df.drop(columns=['shelterSupplies'], inplace=True)
+    #df['shelter_supplies_str'] = df['shelterSupplies'].apply(lambda x: ', '.join([supply['supply']['name'] for supply in x]))
+    # Drop columns
+    df.drop(['shelterSupplies','pix','street','neighbourhood','streetNumber','prioritySum','zipCode','createdAt'], axis=1, inplace=True)
     # Clean duplicated Shelters
     df.drop_duplicates(inplace=True)
     # Format Date
@@ -127,14 +153,8 @@ def get_formated_data():
     df = df.sort_values(by='updatedAt', ascending=False)
     # Add availability
     df['availability'] = df.apply(lambda row: map_availability(row, 'statusId'), axis=1)
-    # Group cities that have less then 5% to 'Outras'
-    #city_counts = df['city'].fillna('Desconhecida').value_counts(normalize=True)
-    #TODO: fix this translation
-    #df['city_grouped'] = df['city'].fillna('Desconhecida').apply(lambda x: x if city_counts[x] >= 0.05 else 'Outras Cidades')
-    # Drop columns
-    df.drop(['pix','street','neighbourhood','streetNumber','prioritySum','zipCode','createdAt'], axis=1, inplace=True)
     # Rename Columns
-    df.rename(columns=dict_rename, inplace=True)
+    # df.rename(columns=dict_rename, inplace=True)
     return df
 
 def data_cities(df, language):
@@ -180,7 +200,9 @@ def get_user_language_and_location(): #TODO: fix this function
             response = requests.get(f'https://ipinfo.io/{ip}/json').json()
         else:
             ip = "193.19.205.186"
-            response = {'ip': '193.19.205.186', 'city': 'São Paulo', 'region': 'São Paulo', 'country': 'BR', 'loc': '-23.5475,-46.6361', 'org': 'AS203020 HostRoyale Technologies Pvt Ltd', 'postal': '01000-000', 'timezone': 'America/Sao_Paulo', 'readme': 'https://ipinfo.io/missingauth'}
+            #response = {'ip': '193.19.205.186', 'city': 'São Paulo', 'region': 'São Paulo', 'country': 'BR', 'loc': '-23.5475,-46.6361', 'timezone': 'America/Sao_Paulo', 'readme': 'https://ipinfo.io/missingauth'}
+            response = {'ip': '193.19.205.155', 'city': 'Barra do Ribeiro', 'region': 'São Paulo', 'country': 'BR', 'loc': '-30.300278,-51.30477', 'timezone': 'America/Sao_Paulo', 'readme': 'https://ipinfo.io/missingauth'}
+        
         loc = response.get('loc')
         country = response.get('country')
         city = response.get('city')
@@ -189,6 +211,8 @@ def get_user_language_and_location(): #TODO: fix this function
         if loc:
             lat, lon = loc.split(',')
             return ('pt-br' if country == 'BR' else 'en', float(lat), float(lon), city, timezone)
+        else:
+            return DEFAULT_LANGUAGE, None, None, '', 'America/Sao_Paulo'
     except Exception as e:
         print(f"Error determining user location: {e}")
     if os.getenv('FLASK_ENV') == 'production':
@@ -486,7 +510,7 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_o
     [State('map', 'figure')]
 )
 def update_data(search, city, verification, pet, availability, pt_clicks, en_clicks, map_figure):
-    language = session.get('language', 'en')
+    language = session.get('language')
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
     elif pt_clicks and (not en_clicks or pt_clicks > en_clicks):
@@ -514,6 +538,12 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     if dict_columns['All'][language] != pet:
         filtered_df = filtered_df[filtered_df['petFriendly'] == pet]
     
+    session_lat = session.get('lat')
+    session_lon = session.get('lon')
+    session_city = session.get('city')
+
+    filtered_df['distance_km'] = filtered_df.apply(lambda row: haversine(row['latitude'], row['longitude'], session_lat, session_lon), axis=1)
+
     # Text
     tex_style = {'color': fontColor, 'fontWeight': 'bold'}
     num_shelters = html.P(f"{dict_columns['AmountOfShelters'][language]}: {len(filtered_df)}", style=tex_style)
@@ -523,15 +553,11 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     pet_friendly_shelters = html.P(f"{dict_columns['PetFriendly'][language]}: {filtered_df['petFriendly'].sum()}", style=tex_style)
 
     # Map Graph
-    lat = session.get('lat')
-    lon = session.get('lon')
-    city = session.get('city')
-
     new_point = pd.DataFrame({
-    'latitude': [lat],
-    'longitude': [lon],
+    'latitude': [session_lat],
+    'longitude': [session_lon],
     'name': dict_availabilityStatus['Location'][language],
-    'city': city,
+    'city': session_city,
     'capacity': '',
     'shelteredPeople': '',
     'availabilityDescription': dict_availabilityStatus['Location'][language]
@@ -568,7 +594,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         lat="latitude",
         lon="longitude",
         hover_name="name",
-        hover_data=hover_columns, #{'city': True, 'capacity': True, 'shelteredPeople': True, 'availabilityDescription': True},
+        hover_data=hover_columns, #{'city': True}
         color="availabilityDescription",
         color_discrete_map=color_availability,
         labels=labels,
@@ -576,8 +602,21 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     )
 
     fig.update_traces(marker=dict(size=12))  # PIN size
-    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor=backgroundColor, mapbox_style=map_style)
+
+    cities = df['city'].unique()
+    cities_lower = [city.lower() for city in cities]
+
+    # Set center based in the user location 
+    if session_city.lower() in cities_lower:
+        map_center={"lat": session_lat, "lon": session_lon}
+    else:
+        map_center={"lat": -30.033056, "lon": -51.230000} # Rio Grande do Sul
+
     fig.update_layout( 
+        mapbox_center=map_center, 
+        margin={"r":0,"t":0,"l":0,"b":0}, 
+        paper_bgcolor=backgroundColor, 
+        mapbox_style=map_style,
         legend=dict( 
             x=0, 
             y=1, 
@@ -587,7 +626,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
                 size=12, 
                 color=fontColor
             ), 
-            #title_text=""
+            title_text=""
         ) 
     ) 
 
@@ -625,6 +664,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
             {"name": f"{dict_columns['City'][language]}", "id": "city"},
             {"name": f"{dict_columns['Capacity'][language]}", "id": "capacity_info"},
             {"name": f"{dict_columns['UpdatedAt'][language]}", "id": "updatedAt"},
+            #{"name": f"Distance", "id": "distance_km"}
         ],
         data=filtered_df.to_dict('records'),
         sort_action='native',
