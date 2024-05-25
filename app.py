@@ -1,7 +1,5 @@
-from flask_sslify import SSLify
 import os
 import dash
-from dash import dcc, html, Input, Output, dash_table, State
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
@@ -9,24 +7,32 @@ import json
 import redis
 import subprocess
 import requests
+import pytz
+from flask_sslify import SSLify
+from dash import dcc, html, Input, Output, dash_table, State
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, jsonify, session, redirect, url_for, request
+from flask import jsonify, session, request
 from datetime import datetime
 from utils import generate_secret_key
 
 # Set up Redis connection
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 client = redis.Redis.from_url(redis_url)
-SECRET_KEY = generate_secret_key()
 
-PAGE_SIZE = 25
 COLORS = 1
-CALL_API_MINUTES = 120
+SECRET_KEY = generate_secret_key()
+PAGE_SIZE = 25
+CALL_API_MINUTES = 60
+DEFAULT_LANGUAGE = 'pt-br'
 
 dict_config = {
-    1: {'backgroundColor': 'black', 'fontColor': 'white', 'map_style': 'carto-darkmatter'},
+    1: {'backgroundColor': '#0E0F0E', 'fontColor': 'white', 'map_style': 'carto-darkmatter'},
     2: {'backgroundColor': 'white', 'fontColor': 'black', 'map_style': 'carto-positron'}
 }
+
+backgroundColor = dict_config.get(COLORS).get("backgroundColor")
+fontColor = dict_config.get(COLORS).get("fontColor")
+map_style = dict_config.get(COLORS).get("map_style")
 
 dict_columns = {
     'Hide': {'pt-br': 'Esconder', 'en': 'Hide'},
@@ -53,10 +59,11 @@ dict_columns = {
 
 dict_availabilityStatus = {
     'AvailabilityStatus': {
-        'Available' : { 'pt-br': 'Disponível', 'en': 'Available'},
-        'Check' : { 'pt-br': 'Consultar', 'en': 'Check'},
-        'Crowded' : { 'pt-br': 'Cheio', 'en': 'Crowded'},
-        'Full' : { 'pt-br': 'Lotado', 'en': 'Full'}
+        'Available' : {'statusId': 1, 'pt-br': 'Disponível', 'en': 'Available', 'color':'#2ECC40'},
+        'Check' : {'statusId': 2, 'pt-br': 'Consultar', 'en': 'Check', 'color':'#00BFFF'},
+        'Crowded' : {'statusId': 3, 'pt-br': 'Cheio', 'en': 'Crowded', 'color':'#FF851B'},
+        'Full' : {'statusId': 4, 'pt-br': 'Lotado', 'en': 'Full', 'color':'#FF4136'},
+        'Location' : {'statusId': 5, 'pt-br': 'Sua Localização', 'en': 'Your Location', 'color': fontColor},
         }
 }
 
@@ -65,13 +72,19 @@ dict_rename = {
     'link': 'link',
 }
 
-backgroundColor = dict_config.get(COLORS).get("backgroundColor")
-fontColor = dict_config.get(COLORS).get("fontColor")
-map_style = dict_config.get(COLORS).get("map_style")
+def get_data():
+    shelter_data = client.get('shelters')
+    if shelter_data:
+        return json.loads(shelter_data)
+    else:
+        with open('shelters.json', 'r') as file:
+            return json.load(file)
 
+def format_date(data_original):
+    data_datetime = pd.to_datetime(data_original)
+    return data_datetime.strftime("%d/%m/%Y %H:%M:%S")
 
-# Função para mapear a disponibilidade usando os dicionários
-def map_availability(row, language):
+def map_availability(row, key):
     if pd.isnull(row['capacity']) or pd.isnull(row['shelteredPeople']):
         status = 'Check'
     elif row['shelteredPeople'] > row['capacity']:
@@ -81,15 +94,7 @@ def map_availability(row, language):
     else:
         status = 'Available'
     
-    return dict_availabilityStatus['AvailabilityStatus'][status][language]
-
-def get_data():
-    shelter_data = client.get('shelters')
-    if shelter_data:
-        return json.loads(shelter_data)
-    else:
-        with open('shelters.json', 'r') as file:
-            return json.load(file)
+    return dict_availabilityStatus['AvailabilityStatus'][status][key]
 
 def create_link(row):
     icons = f"{row['pet_icon']}"
@@ -121,14 +126,16 @@ def get_formated_data():
     # Order by 'updatedAt' DESC
     df = df.sort_values(by='updatedAt', ascending=False)
     # Add availability
-    df['availability'] = df.apply(lambda row: 'Consultar' if pd.isnull(row['capacity']) or pd.isnull(row['shelteredPeople']) 
-                                        else ('Lotado' if row['shelteredPeople'] > row['capacity'] 
-                                        else ('Cheio' if row['shelteredPeople'] == row['capacity'] 
-                                        else 'Disponível')), axis=1)
+    # df['availability'] = df.apply(lambda row: 'Consultar' if pd.isnull(row['capacity']) or pd.isnull(row['shelteredPeople']) 
+    #                                     else ('Lotado' if row['shelteredPeople'] > row['capacity'] 
+    #                                     else ('Cheio' if row['shelteredPeople'] == row['capacity'] 
+    #                                     else 'Disponível')), axis=1)
+
+    df['availability'] = df.apply(lambda row: map_availability(row, 'statusId'), axis=1)
 
         # Aplicar a função ao DataFrame
-    df['availability_ptbr'] = df.apply(lambda row: map_availability(row, 'pt-br'), axis=1)
-    df['availability_en'] = df.apply(lambda row: map_availability(row, 'en'), axis=1)
+    #df['availability_id'] = df.apply(lambda row: map_availability(row, language), axis=1)
+    #df['availability_en'] = df.apply(lambda row: map_availability(row, 'en'), axis=1)
     
     # Group cities that have less then 5% to 'Outras'
     city_counts = df['city'].fillna('Desconhecida').value_counts(normalize=True)
@@ -153,7 +160,7 @@ def update_shelter_data():
         if result.returncode != 0:
             print(f"Error updating data: {result.stderr}")
         else:
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
             client.set('last_update', current_time)
             print("Data updated successfully")
     except Exception as e:
@@ -163,20 +170,39 @@ def get_last_update_time():
     last_update = client.get('last_update')
     if last_update:
         return last_update.decode('utf-8')
-    return 'Never'
+    return ''
 
-def get_user_language_and_location():
+def get_last_update_time():
+    last_update = client.get('last_update')
+    if last_update:
+        last_update_utc = datetime.strptime(last_update.decode('utf-8'), '%Y-%m-%d %H:%M:%S')
+        timezone = session.get('timezone', 'UTC')
+        local_tz = pytz.timezone(timezone)
+        last_update_local = last_update_utc.replace(tzinfo=pytz.utc).astimezone(local_tz)
+        return last_update_local.strftime('%Y-%m-%d %H:%M:%S')
+    return ''
+
+def get_user_language_and_location(): #TODO: fix this function
     try:
-        ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
+        if os.getenv('FLASK_ENV') == 'production':
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
+        else:
+            ip = "193.19.205.186"
         response = requests.get(f'https://ipinfo.io/{ip}/json')
         loc = response.json().get('loc')
         country = response.json().get('country')
+        city = response.json().get('city')
+        timezone = response.json().get('timezone')
+        print(f"{response.json()}")
         if loc:
             lat, lon = loc.split(',')
-            return ('pt-br' if country == 'BR' else 'en', float(lat), float(lon))
+            return ('pt-br' if country == 'BR' else 'en', float(lat), float(lon), city, timezone)
     except Exception as e:
         print(f"Error determining user location: {e}")
-    return 'en', None, None
+    if os.getenv('FLASK_ENV') == 'production':
+        return DEFAULT_LANGUAGE, None, None, '', 'America/Sao_Paulo'
+    else:
+        return 'en', -30.0290596, -51.2345029, "Perth", "Australia/Perth" #values for test in DEV
 
 df = get_formated_data()
 city_options = data_cities(df)
@@ -191,13 +217,14 @@ if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
 @server.before_request
 def before_request():
     if 'language' not in session or 'lat' not in session or 'lon' not in session:
-        user_language, lat, lon = get_user_language_and_location()
+        user_language, lat, lon, city, timezone = get_user_language_and_location()
+        current_timestamp = datetime.utcnow()
         session['language'] = user_language
         session['lat'] = lat
         session['lon'] = lon
-    print(f"{session['language'] = }, {session['lat'] = }, {session['lon'] = }")
-    current_timestamp = datetime.now()
-    print("Current Timestamp:", current_timestamp)
+        session['city'] = city
+        session['timezone'] = timezone
+        print(f"Session values ({current_timestamp}): {session['language'] = }, {session['lat'] = }, {session['lon'] = }, {session['city'] = }, {session['timezone'] = }")
 
 # Scheduler
 scheduler = BackgroundScheduler()
@@ -231,14 +258,14 @@ app.layout = dbc.Container([
     ], style={'textAlign': 'center'}),
     #Last Update
     dbc.Row([
-        dbc.Col(html.Div(id='last-update-div', children=f"Last update: {get_last_update_time()}"), width=12)
+        dbc.Col(html.Div(id='last-update-div'), width=12)
     ], style={'textAlign': 'center', 'marginTop': '10px'}),
     #Search
     dbc.Row([
         dbc.Col(dcc.Input(
             id='search-filter',
             type='text',
-            placeholder=f"{dict_columns.get('Search').get('pt-br')}", 
+            placeholder=f"{dict_columns.get('Search').get('en')}", 
             className='responsive-input', 
             style={'textAlign': 'center'}
         ), width=12)
@@ -261,13 +288,17 @@ app.layout = dbc.Container([
             dcc.Dropdown(
                 id='availability-filter',
                 options=[
-                    {'label': 'Todos', 'value': 'Todos'},
-                    {'label': 'Disponível', 'value': 'Disponível'},
-                    {'label': 'Consultar', 'value': 'Consultar'},
-                    {'label': 'Cheio', 'value': 'Cheio'},
-                    {'label': 'Lotado', 'value': 'Lotado'},       
+                    {'label': dict_columns.get('All').get('en'), 'value': dict_columns.get('All').get('en')},
+                    {'label': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get('en')}", 
+                            'value': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get('statusId')}"},
+                    {'label': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Check').get('en')}", 
+                            'value': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Check').get('statusId')}"},
+                    {'label': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Crowded').get('en')}", 
+                            'value': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Crowded').get('statusId')}"},
+                    {'label': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Full').get('en')}", 
+                            'value': f"{dict_availabilityStatus.get('AvailabilityStatus').get('Full').get('statusId')}"},       
                 ],
-                value=['Disponível', 'Consultar'],
+                value=[f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get('en')}", f"{dict_availabilityStatus.get('AvailabilityStatus').get('Check').get('en')}"],
                 multi=True,
                 clearable=True,
                 style={'color': 'black'}
@@ -313,7 +344,6 @@ app.layout = dbc.Container([
             dbc.Row(dbc.Col(id='pet-friendly-shelters-div')),
             dbc.Row(dbc.Col(id='total-people-div')),
         ], xs=12, sm=12, md=6, lg=3, className="mb-3"
-        #className="d-flex flex-column align-items-center justify-content-center"
         ),
         dbc.Col([
             dbc.Button(id="hide-map", className="mb-2"),
@@ -383,6 +413,8 @@ def hide_city_distribution(n_clicks, current_style):
      Output('search-filter', 'placeholder'),
      Output('city-label', 'children'),
      Output('availability-label', 'children'),
+     Output('availability-filter', 'options'),
+     Output('availability-filter', 'value'),
      Output('verification-label', 'children'),
      Output('pet-label', 'children'),
      Output('city-filter', 'options'),
@@ -395,10 +427,12 @@ def hide_city_distribution(n_clicks, current_style):
     [State('search-filter', 'placeholder'),
      State('city-label', 'children'),
      State('availability-label', 'children'),
+     State('availability-filter', 'options'),
+     State('availability-filter', 'value'),
      State('verification-label', 'children'),
      State('pet-label', 'children')]
 )
-def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availability_label, verification_label, pet_label):
+def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availability_label, availability_options, availability_values, verification_label, pet_label):
     language = session.get('language', 'en')
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
@@ -406,12 +440,27 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
         language = 'pt-br'
     
     city_options = data_cities(df)
-    last_update_time = f"Last update: {get_last_update_time()}"
+    last_update_time = f"{dict_columns['UpdatedAt'][language]}: {get_last_update_time()}"
+
+    availability_options = [
+        {'label': dict_columns.get('All').get(language), 'value': dict_columns.get('All').get(language)},
+        {'label': dict_availabilityStatus['AvailabilityStatus']['Available'][language], 'value': dict_availabilityStatus['AvailabilityStatus']['Available']['statusId']},
+        {'label': dict_availabilityStatus['AvailabilityStatus']['Check'][language], 'value': dict_availabilityStatus['AvailabilityStatus']['Check']['statusId']},
+        {'label': dict_availabilityStatus['AvailabilityStatus']['Crowded'][language], 'value': dict_availabilityStatus['AvailabilityStatus']['Crowded']['statusId']},
+        {'label': dict_availabilityStatus['AvailabilityStatus']['Full'][language], 'value': dict_availabilityStatus['AvailabilityStatus']['Full']['statusId']},
+    ]
+    
+    availability_values = [
+        dict_availabilityStatus['AvailabilityStatus']['Available']['statusId'],
+        dict_availabilityStatus['AvailabilityStatus']['Check']['statusId']
+    ]
     
     return (f"{dict_columns.get('Shelter').get(language)}s - Rio Grande do Sul",
             dict_columns.get('Search').get(language),
             dict_columns.get('City').get(language)+':',
             dict_columns.get('Availability').get(language)+':',
+            availability_options,
+            availability_values,
             dict_columns.get('VerificationStatus').get(language)+':',
             dict_columns.get('Pet').get(language)+':',
             city_options,
@@ -419,6 +468,8 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, availa
             dict_columns.get('Hide').get(language),
             dict_columns.get('Hide').get(language),
             last_update_time)
+
+
 
 @app.callback(
     [Output('map', 'figure'),
@@ -457,6 +508,9 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
 
     if 'Todas as Cidades' not in city and len(city) > 0:
         filtered_df = filtered_df[filtered_df['city'].isin(city)]
+
+    if dict_columns.get('All').get(language) not in availability and len(availability) > 0:
+        filtered_df = filtered_df[filtered_df['availability'].isin(availability)]
     
     if pet != 'Todos':
         filtered_df = filtered_df[filtered_df['petFriendly'] == pet]
@@ -464,8 +518,6 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     if verification != 'Todos':
         filtered_df = filtered_df[filtered_df['verified'] == verification]
 
-    if 'Todos' not in availability and len(availability) > 0:
-        filtered_df = filtered_df[filtered_df['availability'].isin(availability)]
 
     # Pie Graph
     city_distribution = px.pie(
@@ -482,36 +534,37 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     )
     # Map Graph
 
-    lat = session.get('lat', -30.0290596)
-    lon = session.get('lon', -51.2345029)
+    lat = session.get('lat')
+    lon = session.get('lon')
+    city = session.get('city')
 
     new_point = pd.DataFrame({
     'latitude': [lat],
     'longitude': [lon],
-    'name': ['Test'],
-    'availability2': "YOU"
+    'name': dict_availabilityStatus['AvailabilityStatus']['Location'][language],
+    'city': city,
+    'capacity': '',
+    'shelteredPeople': '',
+    'availabilityDescription': dict_availabilityStatus['AvailabilityStatus']['Location'][language]
     })
 
     #new_point = new_point.astype({'latitude': 'float64', 'longitude': 'float64'})
 
-    updated_data = pd.concat([filtered_df, new_point], ignore_index=True)
-
-        # Definir os rótulos das colunas
     labels = {
         'latitude': 'Latitude',
         'longitude': 'Longitude',
-        'name': 'Nome',
-        'city': 'Cidade',
-        'capacity': 'Capacidade',
-        'shelteredPeople': 'Pessoas Alojadas',
-        'availability2': 'Disponibilidade'
+        'name': dict_columns.get('Shelter').get(language),
+        'city': dict_columns.get('City').get(language),
+        'capacity': dict_columns.get('Capacity').get(language),
+        'shelteredPeople': dict_columns.get('AmountOfPeopleSheltered').get(language),
+        'availabilityDescription': dict_columns.get('Availability').get(language)
     }
 
-    #updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability_en']].fillna("")
-    # Substituir valores nulos nas colunas especificadas por uma string vazia
-    updated_data[['city', 'capacity', 'shelteredPeople', 'availability2']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availability2']].fillna("")
-    
-    updated_data['availability2'] = df.apply(lambda row: map_availability(row, language), axis=1)
+    filtered_df['availabilityDescription'] = filtered_df.apply(lambda row: map_availability(row, language), axis=1)
+
+    updated_data = pd.concat([filtered_df, new_point], ignore_index=True)
+
+    updated_data[['city', 'capacity', 'shelteredPeople', 'availabilityDescription']] = updated_data[['city', 'capacity', 'shelteredPeople', 'availabilityDescription']].fillna("")
 
     fig = px.scatter_mapbox(
         updated_data,
@@ -519,25 +572,21 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         lon="longitude",
         hover_name="name",
         #hover_data={'customdata': False},  # Desabilita hover_data padrão para customdata
-        #hover_data=["city", "capacity", "shelteredPeople","availability_en"],
-        hover_data={'city': True, 'capacity': True, 'shelteredPeople': True},
-    
+        hover_data={'city': True, 'capacity': True, 'shelteredPeople': True, 'availabilityDescription': True},
         #custom_data=['city', 'capacity', 'shelteredPeople', 'availability_en'],
-        color="availability2",
+        color="availabilityDescription",
         color_discrete_map={
-            'Lotado': 'red',
-            #'Disponível': 'green',
-            f"{dict_availabilityStatus.get('AvailabilityStatus').get('Available').get(language)}": 'green',
-            'Cheio': 'orange',
-            'Consultar': 'blue',
-            'YOU': 'blank'
+            dict_availabilityStatus['AvailabilityStatus']['Available'][language]: dict_availabilityStatus['AvailabilityStatus']['Available']['color'],
+            dict_availabilityStatus['AvailabilityStatus']['Check'][language]: dict_availabilityStatus['AvailabilityStatus']['Check']['color'],
+            dict_availabilityStatus['AvailabilityStatus']['Crowded'][language] : dict_availabilityStatus['AvailabilityStatus']['Crowded']['color'],
+            dict_availabilityStatus['AvailabilityStatus']['Full'][language]: dict_availabilityStatus['AvailabilityStatus']['Full']['color'],
+            dict_availabilityStatus['AvailabilityStatus']['Location'][language]: dict_availabilityStatus['AvailabilityStatus']['Location']['color']
         },
         labels=labels,
         zoom=9,
     )
 
-    # Aumentar o tamanho dos pins (marcadores)
-    fig.update_traces(marker=dict(size=12))  # Ajuste o valor de 'size' conforme necessário
+    fig.update_traces(marker=dict(size=12))  # PIN size
 
     # # Atualizar layout para exibir customdata corretamente
     # fig.update_traces(
@@ -549,7 +598,6 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     #         "Disponibilidade (EN): %{customdata[3]}"
     #     ])
     # )
-
 
     fig.update_layout(mapbox_style=map_style)
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, paper_bgcolor=backgroundColor)
@@ -602,11 +650,16 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
             {'if': {'column_id': 'updatedAt'}, 'width': '5%'}, 
         ],
         style_data_conditional=[
-            {'if': {'filter_query': '{availability} = "Lotado"',},'backgroundColor': '#FF4136'},
-            {'if': {'filter_query': '{availability} = "Disponível"',},'backgroundColor': '#2ECC40'},
-            {'if': {'filter_query': '{availability} = "Cheio"',},'backgroundColor': '#FF851B'},
-            {'if': {'filter_query': '{availability} = "Consultar"',},'backgroundColor': '#00BFFF'},
-        ],
+            {'if': {'filter_query': f'{{availability}} = "{dict_availabilityStatus["AvailabilityStatus"]["Check"]["statusId"]}"'},
+                'backgroundColor': dict_availabilityStatus["AvailabilityStatus"]["Check"]["color"]},
+            {'if': {'filter_query': f'{{availability}} = "{dict_availabilityStatus["AvailabilityStatus"]["Available"]["statusId"]}"'},
+                'backgroundColor': dict_availabilityStatus["AvailabilityStatus"]["Available"]["color"]},
+            {'if': {'filter_query': f'{{availability}} = "{dict_availabilityStatus["AvailabilityStatus"]["Crowded"]["statusId"]}"'},
+                'backgroundColor': dict_availabilityStatus["AvailabilityStatus"]["Crowded"]["color"]},
+            {'if': {'filter_query': f'{{availability}} = "{dict_availabilityStatus["AvailabilityStatus"]["Full"]["statusId"]}"'},
+                'backgroundColor': dict_availabilityStatus["AvailabilityStatus"]["Full"]["color"]},
+    ]
+
     )
 
     return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table
