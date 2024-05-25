@@ -235,6 +235,8 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_
 server = app.server
 app.server.config['SECRET_KEY'] = SECRET_KEY
 
+app.title = "Abrigos - Rio Grande do Sul"
+
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
     sslify = SSLify(server)
 
