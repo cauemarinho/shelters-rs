@@ -23,7 +23,7 @@ client = redis.Redis.from_url(redis_url)
 COLORS = 1
 SECRET_KEY = generate_secret_key()
 PAGE_SIZE = 25
-CALL_API_MINUTES = 30
+CALL_API_MINUTES = 15
 DEFAULT_LANGUAGE = 'pt-br'
 
 dict_config = {
@@ -182,15 +182,9 @@ def update_shelter_data():
         else:
             current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
             client.set('last_update', current_time)
-            print("Data updated successfully")
+            print(f"Data updated successfully {current_time} (UTC)")
     except Exception as e:
         print(f"Exception during data update: {e}")
-
-def get_last_update_time():
-    last_update = client.get('last_update')
-    if last_update:
-        return last_update.decode('utf-8')
-    return ''
 
 def get_last_update_time():
     last_update = client.get('last_update')
@@ -240,10 +234,10 @@ app.index_string = '''
 <html>
 <head>
     <meta charset="UTF-8">
-    <title id="page-title">Abrigos - Rio Grande do Sul</title>
-    <link id="favicon" rel="icon" type="image/png" sizes="32x32" href="/assets/favicon_io/favicon-32x32-pt-br.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon_io/apple-touch-icon-pt-br.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon_io/favicon-16x16-pt-br.png">
+    <title>Abrigos - Rio Grande do Sul</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon_io/favicon-16x16.png">
     <link rel="manifest" href="/assets/favicon_io/site.webmanifest">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {%favicon%}
@@ -255,21 +249,12 @@ app.index_string = '''
         {%config%}
         {%scripts%}
         {%renderer%}
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                var language = sessionStorage.getItem('language') || 'pt-br';
-                var title = language === 'pt-br' ? 'Abrigos - Rio Grande do Sul' : 'Shelters - Rio Grande do Sul';
-                var favicon = language === 'pt-br' ? '/assets/favicon_io/favicon-32x32-pt-br.png' : '/assets/favicon_io/favicon-32x32-en.png';
-                document.getElementById('page-title').innerText = title;
-                document.getElementById('favicon').href = favicon;
-            });
-        </script>
     </footer>
 </body>
 </html>
 '''
 
-app.title = "Abrigos - Rio Grande do Sul"
+#app.title = "Abrigos - Rio Grande do Sul"
 
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
     sslify = SSLify(server)
