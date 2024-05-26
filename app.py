@@ -235,6 +235,40 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_
 server = app.server
 app.server.config['SECRET_KEY'] = SECRET_KEY
 
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title id="page-title">Abrigos - Rio Grande do Sul</title>
+    <link id="favicon" rel="icon" type="image/png" sizes="32x32" href="/assets/favicon_io/favicon-32x32-pt-br.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon_io/apple-touch-icon-pt-br.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon_io/favicon-16x16-pt-br.png">
+    <link rel="manifest" href="/assets/favicon_io/site.webmanifest">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {%favicon%}
+    {%css%}
+</head>
+<body>
+    {%app_entry%}
+    <footer>
+        {%config%}
+        {%scripts%}
+        {%renderer%}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var language = sessionStorage.getItem('language') || 'pt-br';
+                var title = language === 'pt-br' ? 'Abrigos - Rio Grande do Sul' : 'Shelters - Rio Grande do Sul';
+                var favicon = language === 'pt-br' ? '/assets/favicon_io/favicon-32x32-pt-br.png' : '/assets/favicon_io/favicon-32x32-en.png';
+                document.getElementById('page-title').innerText = title;
+                document.getElementById('favicon').href = favicon;
+            });
+        </script>
+    </footer>
+</body>
+</html>
+'''
+
 app.title = "Abrigos - Rio Grande do Sul"
 
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
@@ -264,6 +298,16 @@ def update_data():
         return jsonify({"message": "Data update triggered"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@server.route('/pt-br')
+def pt_br():
+    session['language'] = 'pt-br'
+    return app.index()
+
+@server.route('/en')
+def en():
+    session['language'] = 'en'
+    return app.index()
 
 app.layout = dbc.Container([
     #Language
@@ -443,7 +487,7 @@ def hide_city_distribution(n_clicks, current_style):
      State('pet-filter', 'value')]
 )
 def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_options, city_values, availability_label, availability_options, availability_values,  verification_label, verification_options, verification_values, pet_label, pet_options, pet_values):
-    language = session.get('language', 'en')
+    language = session.get('language', DEFAULT_LANGUAGE)
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
     elif pt_clicks and (not en_clicks or pt_clicks > en_clicks):
