@@ -12,8 +12,9 @@ import pytz
 from flask_sslify import SSLify
 from dash import dcc, html, Input, Output, dash_table, State
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import jsonify, session, request
-from datetime import datetime
+from flask import Flask, jsonify, session, request
+from flask_session import Session
+from datetime import datetime, timedelta
 from utils import generate_secret_key
 
 # Set up Redis connection
@@ -210,7 +211,7 @@ def get_user_language_and_location(): #TODO: fix this function
         country = response.get('country')
         city = response.get('city')
         timezone = response.get('timezone')
-        print(f"{response}")
+        print(f"{ response = }")
         if loc:
             lat, lon = loc.split(',')
             return ('pt-br' if country == 'BR' else 'en', float(lat), float(lon), city, timezone)
@@ -225,9 +226,24 @@ def get_user_language_and_location(): #TODO: fix this function
 
 df = get_formated_data()
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
-server = app.server
-app.server.config['SECRET_KEY'] = SECRET_KEY
+
+# Initialize Flask server
+server = Flask(__name__)
+server.config['SECRET_KEY'] = SECRET_KEY
+
+# Configure Flask server to use Redis for session management
+server.config['SESSION_TYPE'] = 'redis'
+server.config['SESSION_PERMANENT'] = False
+server.config['SESSION_USE_SIGNER'] = True
+server.config['SESSION_KEY_PREFIX'] = 'session:'
+server.config['SESSION_REDIS'] = redis.from_url(redis_url)
+server.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
+
+# Initialize the session
+Session(server)
+
+app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
+
 
 app.index_string = '''
 <!DOCTYPE html>
@@ -261,14 +277,18 @@ if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
 
 @server.before_request
 def before_request():
+    session.permanent = True
+    current_timestamp = datetime.utcnow()
+    #print(f" before_request : { current_timestamp = }")
     if 'language' not in session or 'lat' not in session or 'lon' not in session:
+    #if not session.get('initialized'):
         user_language, lat, lon, city, timezone = get_user_language_and_location()
-        current_timestamp = datetime.utcnow()
         session['language'] = user_language
         session['lat'] = lat
         session['lon'] = lon
         session['city'] = city
         session['timezone'] = timezone
+        session['initialized'] = True
         print(f"Session values ({current_timestamp}): {session['language'] = }, {session['lat'] = }, {session['lon'] = }, {session['city'] = }, {session['timezone'] = }")
 
 # Scheduler
@@ -584,14 +604,6 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
 
     filtered_df['availabilityDescription'] = filtered_df.apply(lambda row: map_availability(row, language), axis=1)
     filtered_df[['distance_km','distance_km2']] = filtered_df.apply(lambda row: distance_haversine(row['latitude'], row['longitude'], session_lat, session_lon), axis=1, result_type='expand')
-    # Change column to cateforical to sort by 
-    # custom_order = [
-    #     dict_availabilityStatus['Available'][language],
-    #     dict_availabilityStatus['Check'][language],
-    #     dict_availabilityStatus['Crowded'][language],
-    #     dict_availabilityStatus['Full'][language]
-    #     ]
-    # filtered_df['availabilityDescription'] = pd.Categorical(filtered_df['availabilityDescription'], categories=custom_order, ordered=True)
 
     # Sort df by distance
     filtered_df = filtered_df.sort_values(by=['distance_km2'], ascending=[ True], na_position='last')
