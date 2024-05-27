@@ -131,7 +131,7 @@ def calculate_vacancies(row):
 
 def get_formated_data():
     df = pd.json_normalize(get_data())
-    df = df[df['actived'] == True]
+    #df = df[df['actived'] == True]
     df['pet_icon'] = df['petFriendly'].apply(lambda x: '🐾' if x else '')
     df['verification_icon'] = df['verified'].apply(lambda x: '✔️' if x else '❌')
     df['capacity_info'] = df.apply(lambda row: f"{int(row['shelteredPeople']) if pd.notnull(row['shelteredPeople']) else '-'}/{int(row['capacity']) if pd.notnull(row['capacity']) else '-'}", axis=1)
