@@ -138,7 +138,7 @@ def get_formated_data():
     df['vacancies'] = df.apply(calculate_vacancies, axis=1)
     df['link'] = df.apply(create_link, axis=1)# Creates Markdown column with the source API url
     #df.drop(['shelterSupplies', 'pix', 'street', 'neighbourhood', 'streetNumber', 'prioritySum', 'zipCode', 'createdAt'], axis=1, inplace=True)
-    df.drop_duplicates(inplace=True)
+    #df.drop_duplicates(inplace=True)
     df['updatedAt'] = df['updatedAt'].apply(format_date)
     df = df.sort_values(by='updatedAt', ascending=False)
     df['availability'] = df.apply(lambda row: map_availability(row, 'statusId'), axis=1)

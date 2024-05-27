@@ -32,7 +32,7 @@ def clean_data(data):
     df = pd.json_normalize(cleaned_data)
     df = df[df['actived'] == True]
     df.drop(['actived', 'shelterSupplies', 'pix', 'street', 'neighbourhood', 'streetNumber', 'prioritySum', 'zipCode', 'createdAt'], axis=1, inplace=True)
-    
+    df.drop_duplicates(inplace=True)
     return df
 
 def main():
