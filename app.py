@@ -9,6 +9,7 @@ import redis
 import subprocess
 import requests
 import pytz
+import logging
 from flask_sslify import SSLify
 from dash import dcc, html, Input, Output, dash_table, State
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -16,6 +17,8 @@ from flask import Flask, jsonify, session, request
 from flask_session import Session
 from datetime import datetime, timedelta
 from utils import generate_secret_key
+
+logging.getLogger().setLevel(logging.INFO)
 
 # Set up Redis connection
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
@@ -61,12 +64,12 @@ dict_columns = {
     'SheltersNotVerified': {'pt-br': 'Nāo Verificados', 'en': 'Not Verified'},
     'Search': {'pt-br': 'Buscar por abrigo ou endereço', 'en': 'Search for shelter or address'},
     'AvailabilityStatus': {
-        'Available' : {'statusId': 1, 'pt-br': 'Disponível', 'en': 'Available', 'color':'#2ECC40'},
-        'Check' : {'statusId': 2, 'pt-br': 'Consultar', 'en': 'Check', 'color':'#00BFFF'},
-        'Crowded' : {'statusId': 3, 'pt-br': 'Cheio', 'en': 'Crowded', 'color':'#FFB347'},
-        'Full' : {'statusId': 4, 'pt-br': 'Lotado', 'en': 'Full', 'color':'#FF6347'},
-        'Location' : {'statusId': 5, 'pt-br': 'Sua Localização', 'en': 'Your Location', 'color': fontColor},
-        }
+        'Available': {'statusId': 1, 'pt-br': 'Disponível', 'en': 'Available', 'color': '#2ECC40'},
+        'Check': {'statusId': 2, 'pt-br': 'Consultar', 'en': 'Check', 'color': '#00BFFF'},
+        'Crowded': {'statusId': 3, 'pt-br': 'Cheio', 'en': 'Crowded', 'color': '#FFB347'},
+        'Full': {'statusId': 4, 'pt-br': 'Lotado', 'en': 'Full', 'color': '#FF6347'},
+        'Location': {'statusId': 5, 'pt-br': 'Sua Localização', 'en': 'Your Location', 'color': fontColor},
+    }
 }
 
 dict_availabilityStatus = dict_columns['AvailabilityStatus']
@@ -85,31 +88,20 @@ def get_data():
             return json.load(file)
 
 def distance_haversine(lon1, lat1, lon2, lat2):
-    """
-    Calcular a distância entre duas coordenadas (lon1, lat1) e (lon2, lat2) usando a fórmula do Haversine.
-    A distância é retornada em quilômetros.
-    """
-    # Converter graus para radianos
     lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
 
-    # Diferenças das coordenadas
     dlon = lon2 - lon1
     dlat = lat2 - lat1
 
-    # Fórmula do Haversine
     a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
     c = 2 * math.asin(math.sqrt(a))
-
-    # Raio da Terra em quilômetros (use 3956 para milhas)
     r = 6371
 
-    # Calcular a distância
     distance = c * r
-
     if math.isnan(distance):
-        return ["",distance]
+        return ["", distance]
     else:
-        return [f"{round(distance, 1)} Km",distance]
+        return [f"{round(distance, 1)} Km", distance]
 
 def map_availability(row, key):
     if pd.isnull(row['capacity']) or pd.isnull(row['shelteredPeople']):
@@ -139,32 +131,17 @@ def calculate_vacancies(row):
 
 def get_formated_data():
     df = pd.json_normalize(get_data())
-    # Filter actived shelters
     df = df[df['actived'] == True]
-    # Add column 'pet_icon' based on 'petFriendly' column
     df['pet_icon'] = df['petFriendly'].apply(lambda x: '🐾' if x else '')
-    # Add column 'verification_icon' based on 'verified' column
     df['verification_icon'] = df['verified'].apply(lambda x: '✔️' if x else '❌')
-    # Create a new column for capacity information
     df['capacity_info'] = df.apply(lambda row: f"{int(row['shelteredPeople']) if pd.notnull(row['shelteredPeople']) else '-'}/{int(row['capacity']) if pd.notnull(row['capacity']) else '-'}", axis=1)
-    #
     df['vacancies'] = df.apply(calculate_vacancies, axis=1)
-    # link Column to create hyperlink
-    df['link'] = df.apply(create_link, axis=1)
-    # Convert shelter_supplies to str
-    #df['shelter_supplies_str'] = df['shelterSupplies'].apply(lambda x: ', '.join([supply['supply']['name'] for supply in x]))
-    # Drop columns
-    df.drop(['shelterSupplies','pix','street','neighbourhood','streetNumber','prioritySum','zipCode','createdAt'], axis=1, inplace=True)
-    # Clean duplicated Shelters
+    df['link'] = df.apply(create_link, axis=1)# Creates Markdown column with the source API url
+    df.drop(['shelterSupplies', 'pix', 'street', 'neighbourhood', 'streetNumber', 'prioritySum', 'zipCode', 'createdAt'], axis=1, inplace=True)
     df.drop_duplicates(inplace=True)
-    # Format Date
     df['updatedAt'] = df['updatedAt'].apply(format_date)
-    # Order by 'updatedAt' DESC
     df = df.sort_values(by='updatedAt', ascending=False)
-    # Add availability
     df['availability'] = df.apply(lambda row: map_availability(row, 'statusId'), axis=1)
-    # Rename Columns
-    # df.rename(columns=dict_rename, inplace=True)
     return df
 
 def data_cities(df, language):
@@ -176,16 +153,18 @@ def data_cities(df, language):
     return city_options
 
 def update_shelter_data():
+    logging.info("Running update_shelter_data")
     try:
         result = subprocess.run(['python', 'get_api_data.py'], capture_output=True, text=True)
         if result.returncode != 0:
-            print(f"Error updating data: {result.stderr}")
+            logging.error(f"Error updating data: {result.stderr}")
         else:
             current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            logging.info(f"Result of update: {result.stdout}")
             client.set('last_update', current_time)
-            print(f"Data updated successfully {current_time} (UTC)")
+            logging.info(f"Data updated successfully {current_time} (UTC)")
     except Exception as e:
-        print(f"Exception during data update: {e}")
+        logging.error(f"Exception during data update: {e}")
 
 def get_last_update_time():
     last_update = client.get('last_update')
@@ -197,53 +176,54 @@ def get_last_update_time():
         return last_update_local.strftime('%Y-%m-%d %H:%M:%S')
     return ''
 
-def get_user_language_and_location(): #TODO: fix this function
+def get_user_language_and_location():
     try:
         if os.getenv('FLASK_ENV') == 'production':
             ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
-            response = requests.get(f'https://ipinfo.io/{ip}/json').json()
         else:
-            ip = "193.19.205.186"
-            #response = {'ip': '193.19.205.186', 'city': 'São Paulo', 'region': 'São Paulo', 'country': 'BR', 'loc': '-23.5475,-46.6361', 'timezone': 'America/Sao_Paulo', 'readme': 'https://ipinfo.io/missingauth'}
-            response = {'ip': '193.19.205.155', 'city': 'Barra do Ribeiro', 'region': 'São Paulo', 'country': 'BR', 'loc': '-30.300278,-51.30477', 'timezone': 'America/Sao_Paulo', 'readme': 'https://ipinfo.io/missingauth'}
-        
+            ip = "193.19.205.155"
+
+        cached_response = client.get(f"user_location:{ip}")
+        if cached_response:
+            logging.info(f"{datetime.utcnow()}:{ ip = }is cached")
+            response = json.loads(cached_response)
+        else:
+            if os.getenv('FLASK_ENV') == 'production':
+                response = requests.get(f'https://ipinfo.io/{ip}/json').json()
+                logging.info(f"{datetime.utcnow()}:{ ip = }{response=}")
+            else:
+                response = {'ip': '193.19.205.155','city': 'Barra do Ribeiro','region': 'São Paulo','country': 'BR','loc': '-30.300278,-51.30477','timezone': 'America/Sao_Paulo'}
+            client.setex(f"user_location:{ip}", timedelta(hours=24), json.dumps(response))
+            logging.info(f"{datetime.utcnow()}:{ ip = }added to Redis.")
+
         loc = response.get('loc')
         country = response.get('country')
         city = response.get('city')
         timezone = response.get('timezone')
-        print(f"{ response = }")
+
         if loc:
             lat, lon = loc.split(',')
             return ('pt-br' if country == 'BR' else 'en', float(lat), float(lon), city, timezone)
         else:
             return DEFAULT_LANGUAGE, None, None, '', 'America/Sao_Paulo'
     except Exception as e:
-        print(f"Error determining user location: {e}")
+        logging.error(f"Error determining user location: {e}")
     if os.getenv('FLASK_ENV') == 'production':
         return DEFAULT_LANGUAGE, None, None, '', 'America/Sao_Paulo'
-    else:
-        return 'en', -30.0290596, -51.2345029, "Perth", "Australia/Perth" #values for test in DEV
 
 df = get_formated_data()
 
-
-# Initialize Flask server
 server = Flask(__name__)
 server.config['SECRET_KEY'] = SECRET_KEY
-
-# Configure Flask server to use Redis for session management
 server.config['SESSION_TYPE'] = 'redis'
 server.config['SESSION_PERMANENT'] = False
 server.config['SESSION_USE_SIGNER'] = True
 server.config['SESSION_KEY_PREFIX'] = 'session:'
 server.config['SESSION_REDIS'] = redis.from_url(redis_url)
 server.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
-
-# Initialize the session
 Session(server)
 
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
-
 
 app.index_string = '''
 <!DOCTYPE html>
@@ -270,18 +250,13 @@ app.index_string = '''
 </html>
 '''
 
-#app.title = "Abrigos - Rio Grande do Sul"
-
 if 'DYNO' in os.environ:  # Only trigger SSLify if on Heroku
     sslify = SSLify(server)
 
 @server.before_request
 def before_request():
     session.permanent = True
-    current_timestamp = datetime.utcnow()
-    #print(f" before_request : { current_timestamp = }")
     if 'language' not in session or 'lat' not in session or 'lon' not in session:
-    #if not session.get('initialized'):
         user_language, lat, lon, city, timezone = get_user_language_and_location()
         session['language'] = user_language
         session['lat'] = lat
@@ -289,9 +264,8 @@ def before_request():
         session['city'] = city
         session['timezone'] = timezone
         session['initialized'] = True
-        print(f"Session values ({current_timestamp}): {session['language'] = }, {session['lat'] = }, {session['lon'] = }, {session['city'] = }, {session['timezone'] = }")
+        logging.info(f"Session - {datetime.utcnow()}: {session['language']}, {session['lat']}, {session['lon']}, {session['city']}, {session['timezone']}")
 
-# Scheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(update_shelter_data, 'interval', minutes=CALL_API_MINUTES)
 scheduler.start()
@@ -380,9 +354,7 @@ app.layout = dbc.Container([
                 style={'color': 'black'}
             )
         ], xs=12, sm=12, md=6, lg=3, className="mb-1"),
-    ], style={'backgroundColor': backgroundColor, 'margin-bottom': '5px'}
-    ),
-    #Graphs
+    ], style={'backgroundColor': backgroundColor, 'margin-bottom': '5px'}),
     dbc.Row([
        dbc.Col([
             dbc.Button(id="hide-info"),
@@ -391,8 +363,7 @@ app.layout = dbc.Container([
             dbc.Row(dbc.Col(id='not-verified-shelters-div')),
             dbc.Row(dbc.Col(id='pet-friendly-shelters-div')),
             dbc.Row(dbc.Col(id='total-people-div')),
-        ], xs=12, sm=12, md=6, lg=3, className="mb-3"
-        ),
+        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
         dbc.Col([
             dbc.Button(id="hide-map"),
             dcc.Graph(id='map', style={'display': 'block'})
@@ -407,10 +378,7 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col(html.Div(id='shelter-table-div'), width=12)
     ])
-
-], fluid=True
-, style={'backgroundColor': backgroundColor}
-)
+], fluid=True, style={'backgroundColor': backgroundColor})
 
 @app.callback(
     Output('num-shelters-div', 'style'),
@@ -431,7 +399,6 @@ def hide_info(n_clicks, num_style, verified_style, not_verified_style, pet_frien
         new_style = {'display': 'none'}
     else:
         new_style = {'display': 'block'}
-    
     return new_style, new_style, new_style, new_style, new_style
 
 @app.callback(
@@ -491,14 +458,14 @@ def hide_city_distribution(n_clicks, current_style):
      State('pet-filter', 'options'),
      State('pet-filter', 'value')]
 )
-def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_options, city_values, availability_label, availability_options, availability_values,  verification_label, verification_options, verification_values, pet_label, pet_options, pet_values):
+def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_options, city_values, availability_label, availability_options, availability_values, verification_label, verification_options, verification_values, pet_label, pet_options, pet_values):
     language = session.get('language', DEFAULT_LANGUAGE)
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
     elif pt_clicks and (not en_clicks or pt_clicks > en_clicks):
         language = 'pt-br'
     
-    city_options = data_cities(df,language)
+    city_options = data_cities(df, language)
     last_update_time = f"{dict_columns['UpdatedAt'][language]}: {get_last_update_time()}"
 
     availability_options = [
@@ -521,16 +488,13 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_o
     ]
     
     verification_options = simple_options
-
     pet_options = simple_options
 
-    simple_values = dict_columns['All'][language]
-
-    verification_values = simple_values
-
-    pet_values = simple_values
-
     city_values = dict_columns['AllCities'][language]
+    
+    simple_values = dict_columns['All'][language]
+    verification_values = simple_values
+    pet_values = simple_values
     
     return (f"{dict_columns['Shelter'][language]}s - Rio Grande do Sul",
             dict_columns['Search'][language],
@@ -603,10 +567,14 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     session_city = session.get('city')
 
     filtered_df['availabilityDescription'] = filtered_df.apply(lambda row: map_availability(row, language), axis=1)
-    filtered_df[['distance_km','distance_km2']] = filtered_df.apply(lambda row: distance_haversine(row['latitude'], row['longitude'], session_lat, session_lon), axis=1, result_type='expand')
 
-    # Sort df by distance
-    filtered_df = filtered_df.sort_values(by=['distance_km2'], ascending=[ True], na_position='last')
+    if filtered_df.shape[0] == 0:
+        filtered_df['distance_km'] = []
+        filtered_df['distance_km2'] = []
+    else:
+        filtered_df[['distance_km', 'distance_km2']] = filtered_df.apply(lambda row: distance_haversine(row['latitude'], row['longitude'], session_lat, session_lon), axis=1, result_type='expand')
+
+    filtered_df = filtered_df.sort_values(by=['distance_km2'], ascending=[True], na_position='last')
     
     # Text
     tex_style = {'color': fontColor, 'fontWeight': 'bold'}
@@ -618,13 +586,13 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
 
     # Map Graph
     new_point = pd.DataFrame({
-    'latitude': [session_lat],
-    'longitude': [session_lon],
-    'name': dict_availabilityStatus['Location'][language],
-    'city': session_city,
-    'capacity': '',
-    'shelteredPeople': '',
-    'availabilityDescription': dict_availabilityStatus['Location'][language]
+        'latitude': [session_lat],
+        'longitude': [session_lon],
+        'name': dict_availabilityStatus['Location'][language],
+        'city': session_city,
+        'capacity': '',
+        'shelteredPeople': '',
+        'availabilityDescription': dict_availabilityStatus['Location'][language]
     })
 
     labels = {
@@ -640,64 +608,63 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     hover_columns = ['city', 'capacity', 'shelteredPeople', 'availabilityDescription']
 
     map_df = pd.concat([filtered_df, new_point], ignore_index=True)
-
     map_df[hover_columns] = map_df[hover_columns].fillna("")
 
-    color_availability={
-            dict_availabilityStatus['Available'][language]: dict_availabilityStatus['Available']['color'],
-            dict_availabilityStatus['Check'][language]: dict_availabilityStatus['Check']['color'],
-            dict_availabilityStatus['Crowded'][language] : dict_availabilityStatus['Crowded']['color'],
-            dict_availabilityStatus['Full'][language]: dict_availabilityStatus['Full']['color'],
-            dict_availabilityStatus['Location'][language]: dict_availabilityStatus['Location']['color']
-        }
+    color_availability = {
+        dict_availabilityStatus['Available'][language]: dict_availabilityStatus['Available']['color'],
+        dict_availabilityStatus['Check'][language]: dict_availabilityStatus['Check']['color'],
+        dict_availabilityStatus['Crowded'][language]: dict_availabilityStatus['Crowded']['color'],
+        dict_availabilityStatus['Full'][language]: dict_availabilityStatus['Full']['color'],
+        dict_availabilityStatus['Location'][language]: dict_availabilityStatus['Location']['color']
+    }
 
     fig = px.scatter_mapbox(
         map_df,
         lat="latitude",
         lon="longitude",
         hover_name="name",
-        hover_data=hover_columns, #{'city': True}
+        hover_data=hover_columns,
         color="availabilityDescription",
         color_discrete_map=color_availability,
         labels=labels,
         zoom=9,
     )
 
-    fig.update_traces(marker=dict(size=12))  # PIN size
+    fig.update_traces(marker=dict(size=12))
 
     cities = df['city'].unique()
     cities_lower = [city.lower() for city in cities]
 
     # Set center based in the user location 
     if session_city.lower() in cities_lower:
-        map_center={"lat": session_lat, "lon": session_lon}
+        map_center = {"lat": session_lat, "lon": session_lon}
     else:
-        map_center={"lat": -30.033056, "lon": -51.230000} # Rio Grande do Sul
+        map_center = {"lat": -30.033056, "lon": -51.230000}
 
-    fig.update_layout( 
-        mapbox_center=map_center, 
-        margin={"r":0,"t":0,"l":0,"b":0}, 
-        paper_bgcolor=backgroundColor, 
+    fig.update_layout(
+        mapbox_center=map_center,
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        paper_bgcolor=backgroundColor,
         mapbox_style=map_style,
-        legend=dict( 
-            x=0, 
-            y=1, 
-            title_font_family="Times New Roman", 
-            font=dict( 
-                family="Courier", 
-                size=12, 
+        legend=dict(
+            x=0,
+            y=1,
+            title_font_family="Times New Roman",
+            font=dict(
+                family="Courier",
+                size=12,
                 color=fontColor
-            ), 
+            ),
             title_text=""
-        ) 
-    ) 
+        )
+    )
 
     # Pie Graph
     pie_df = map_df.loc[map_df['availabilityDescription'] != dict_availabilityStatus['Location'][language]]
 
     category_counts = pie_df['availabilityDescription'].value_counts().reset_index()
     category_counts.columns = ['availabilityDescription', 'count']
-    
+
     city_distribution = px.pie(
         category_counts,
         names='availabilityDescription',
@@ -715,7 +682,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     )
 
     city_distribution.update_traces(
-    hovertemplate='%{label}: %{value} <extra></extra>'
+        hovertemplate='%{label}: %{value} <extra></extra>'
     )
 
     # Table
@@ -723,7 +690,6 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         columns=[
             {"name": f"{dict_columns['Shelter'][language]}", "id": "link", "presentation": "markdown"},
             {"name": f"{dict_columns['Address'][language]}", "id": "address"},
-            #{"name": f"{dict_columns['Availability'][language]}", "id": "availabilityDescription"},
             {"name": f"{dict_columns['Capacity'][language]}", "id": "capacity_info", "sort_as_null": ["-/-"]},
             {"name": f"{dict_columns['Vacancies'][language]}", "id": "vacancies", "sort_as_null": ["-"]},
             {"name": f"{dict_columns['Distance'][language]}", "id": "distance_km", "sort_as_null": [""]},
@@ -745,11 +711,10 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         style_cell_conditional=[
             {'if': {'column_id': 'link'}, 'width': '25%'},
             {'if': {'column_id': 'address'}, 'width': '25%'},
-            #{'if': {'column_id': 'availabilityDescription'}, 'width': '5%'},
             {'if': {'column_id': 'capacity_info'}, 'width': '3%'},
             {'if': {'column_id': 'vacancies'}, 'width': '5%'},
-            {'if': {'column_id': 'updatedAt'}, 'width': '5%'}, 
-            {'if': {'column_id': 'distance_km'}, 'width': '5%'}, 
+            {'if': {'column_id': 'updatedAt'}, 'width': '5%'},
+            {'if': {'column_id': 'distance_km'}, 'width': '5%'},
         ],
         style_data_conditional=[
             {'if': {'filter_query': f'{{availability}} = "{dict_columns["AvailabilityStatus"]["Check"]["statusId"]}"'},
@@ -760,18 +725,20 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
                 'backgroundColor': dict_columns["AvailabilityStatus"]["Crowded"]["color"]},
             {'if': {'filter_query': f'{{availability}} = "{dict_columns["AvailabilityStatus"]["Full"]["statusId"]}"'},
                 'backgroundColor': dict_columns["AvailabilityStatus"]["Full"]["color"]},
-    ]
-
+        ]
     )
 
     return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table
 
 if __name__ == '__main__':
-    debug_mode = os.getenv('FLASK_ENV') != 'production'
+    debug_mode = os.getenv('FLASK_ENV') == 'production'
     update_shelter_data()  # Run the update function at startup
+    logging.info("Starting the server")
     try:
         app.run_server(debug=debug_mode)
     finally:
+        logging.info("Shutting down the scheduler")
         scheduler.shutdown()
 else:
+    logging.info("Starting the server in WSGI mode")
     server = app.server
