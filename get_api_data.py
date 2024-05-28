@@ -7,9 +7,11 @@ import pandas as pd
 # Set the Redis URL
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 client = redis.Redis.from_url(redis_url)
+API_URL = os.getenv('API_URL')
+FLASK_ENV = os.getenv('FLASK_ENV')
 
 def fetch_shelter_data():
-    endpoint = "https://api.sos-rs.com/shelters?perPage=100"
+    endpoint = f"{API_URL}/shelters?perPage=100"
     shelters = []
     total = 5000
     page = 1
@@ -49,9 +51,9 @@ def main():
         client.set('shelters', cleaned_shelters_json)
         print('Shelter data has been updated in Redis')
 
-        if os.getenv('FLASK_ENV') != 'production':
+        if FLASK_ENV != 'production':
             # Save the cleaned shelter data to a JSON file
-            with open('test.json', 'w') as f:
+            with open('local.json', 'w') as f:
                 json.dump(json.loads(cleaned_shelters_json), f, indent=4)
             print('Shelter data has been saved to test.json')
     except Exception as err:

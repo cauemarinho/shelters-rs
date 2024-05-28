@@ -29,6 +29,7 @@ SECRET_KEY = generate_secret_key()
 PAGE_SIZE = 25
 CALL_API_MINUTES = 15
 DEFAULT_LANGUAGE = 'pt-br'
+FLASK_ENV = os.getenv('FLASK_ENV')
 
 dict_config = {
     1: {'backgroundColor': '#0E0F0E', 'fontColor': 'white', 'map_style': 'carto-darkmatter', 'font-family': 'Georgia, serif'},
@@ -52,7 +53,7 @@ dict_columns = {
     'City': {'pt-br': 'Cidade', 'en': 'City'},
     'Shelter': {'pt-br': 'Abrigo', 'en': 'Shelter'},
     'People': {'pt-br': 'Pessoas', 'en': 'People'},
-    'UpdatedAt': {'pt-br': 'Atualizado', 'en': 'Updated At'},
+    'UpdatedAt': {'pt-br': 'Atualizado em', 'en': 'Updated At'},
     'Address': {'pt-br': 'Endereço', 'en': 'Address'},
     'Capacity': {'pt-br': 'Capacidade', 'en': 'Capacity'},
     'Availability': {'pt-br': 'Disponibilidade', 'en': 'Availability'},
@@ -131,14 +132,11 @@ def calculate_vacancies(row):
 
 def get_formated_data():
     df = pd.json_normalize(get_data())
-    #df = df[df['actived'] == True]
     df['pet_icon'] = df['petFriendly'].apply(lambda x: '🐾' if x else '')
     df['verification_icon'] = df['verified'].apply(lambda x: '✔️' if x else '❌')
     df['capacity_info'] = df.apply(lambda row: f"{int(row['shelteredPeople']) if pd.notnull(row['shelteredPeople']) else '-'}/{int(row['capacity']) if pd.notnull(row['capacity']) else '-'}", axis=1)
     df['vacancies'] = df.apply(calculate_vacancies, axis=1)
     df['link'] = df.apply(create_link, axis=1)# Creates Markdown column with the source API url
-    #df.drop(['shelterSupplies', 'pix', 'street', 'neighbourhood', 'streetNumber', 'prioritySum', 'zipCode', 'createdAt'], axis=1, inplace=True)
-    #df.drop_duplicates(inplace=True)
     df['updatedAt'] = df['updatedAt'].apply(format_date)
     df = df.sort_values(by='updatedAt', ascending=False)
     df['availability'] = df.apply(lambda row: map_availability(row, 'statusId'), axis=1)
@@ -178,7 +176,7 @@ def get_last_update_time():
 
 def get_user_language_and_location():
     try:
-        if os.getenv('FLASK_ENV') == 'production':
+        if FLASK_ENV == 'production':
             ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
         else:
             ip = "193.19.205.155"
@@ -188,7 +186,7 @@ def get_user_language_and_location():
             logging.info(f"{datetime.utcnow()}:{ ip = }is cached")
             response = json.loads(cached_response)
         else:
-            if os.getenv('FLASK_ENV') == 'production':
+            if FLASK_ENV == 'production':
                 response = requests.get(f'https://ipinfo.io/{ip}/json').json()
                 logging.info(f"{datetime.utcnow()}:{ ip = }{response=}")
             else:
@@ -208,7 +206,7 @@ def get_user_language_and_location():
             return DEFAULT_LANGUAGE, None, None, '', 'America/Sao_Paulo'
     except Exception as e:
         logging.error(f"Error determining user location: {e}")
-    if os.getenv('FLASK_ENV') == 'production':
+    if FLASK_ENV == 'production':
         return DEFAULT_LANGUAGE, None, None, '', 'America/Sao_Paulo'
 
 df = get_formated_data()
@@ -293,10 +291,10 @@ app.layout = dbc.Container([
     dbc.Row([
         dbc.Col(html.Div([
             html.A([
-                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197386.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px', 'margin-right': '7px'}),
+                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197386.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px', 'margin-right': '8px'}),
             ], title="brazil icons", id='pt-br', n_clicks=0),
             html.A([
-                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197484.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px', 'margin-left': '7px'}),
+                html.Img(src='https://cdn-icons-png.flaticon.com/128/197/197484.png', style={'cursor': 'pointer', 'width': '25px', 'height': '25px', 'margin-left': '8px'}),
             ], title="usa icons", id='en', n_clicks=0),
         ]), width="auto"),
     ], className="justify-content-center",
@@ -304,7 +302,7 @@ app.layout = dbc.Container([
     #Title
     dbc.Row([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center', 'font-family': 'Georgia, serif'}), width=12)
-    ], style={'textAlign': 'center', 'margin-bottom': '5px'}),
+    ], style={'textAlign': 'center'}),
     #Last Update
     dbc.Row([
         dbc.Col(html.Div(id='last-update-div'), width=12)
@@ -317,7 +315,7 @@ app.layout = dbc.Container([
             className='responsive-input', 
             style={'textAlign': 'center'}
         ))
-    ], style={'textAlign': 'center', 'margin-bottom': '5px'}),
+    ], style={'textAlign': 'center', 'margin-bottom': '4px'}),
     #Filters
     dbc.Row([
         dbc.Col([
@@ -354,26 +352,27 @@ app.layout = dbc.Container([
                 style={'color': 'black'}
             )
         ], xs=12, sm=12, md=6, lg=3, className="mb-1"),
-    ], style={'backgroundColor': backgroundColor, 'margin-bottom': '5px'}),
+    ], style={'backgroundColor': backgroundColor, 'margin-bottom': '4px'}),
+    # Graphs
     dbc.Row([
        dbc.Col([
             dbc.Button(id="hide-info"),
-            dbc.Row(dbc.Col(html.Div(id='empty-div', style={'height': '60px'}))),
+            dbc.Row(dbc.Col(html.Div(id='empty-div'))),
             dbc.Row(dbc.Col(id='num-shelters-div')),
             dbc.Row(dbc.Col(id='verified-shelters-div')),
             dbc.Row(dbc.Col(id='not-verified-shelters-div')),
             dbc.Row(dbc.Col(id='pet-friendly-shelters-div')),
             dbc.Row(dbc.Col(id='total-people-div')),
-        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
+        ], xs=12, sm=12, md=6, lg=3, className="mb-2"),
         dbc.Col([
             dbc.Button(id="hide-map"),
             dcc.Graph(id='map', style={'display': 'block'})
-        ], xs=12, sm=12, md=6, lg=6, className="mb-3", style={'margin-bottom': '10px'}),
+        ], xs=12, sm=12, md=6, lg=6, className="mb-2"),
         dbc.Col([
             dbc.Button(id="hide-city-distribution"),
             dcc.Graph(id='city-distribution', style={'display': 'block'})
-        ], xs=12, sm=12, md=6, lg=3, className="mb-3"),
-        ], style={'backgroundColor': backgroundColor, 'textAlign': 'center', 'margin-bottom': '5px'} 
+        ], xs=12, sm=12, md=6, lg=3, className="mb-2"),
+        ], style={'backgroundColor': backgroundColor, 'textAlign': 'center'} 
     ),
     #Table
     dbc.Row([
@@ -733,7 +732,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     return fig, city_distribution, num_shelters, total_people, verified_shelters, not_verified_shelters, pet_friendly_shelters, shelter_table
 
 if __name__ == '__main__':
-    debug_mode = os.getenv('FLASK_ENV') == 'production'
+    debug_mode = FLASK_ENV == 'production'
     update_shelter_data()  # Run the update function at startup
     logging.info("Starting the server")
     try:

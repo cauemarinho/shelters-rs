@@ -27,3 +27,13 @@
         width: 60%;
     }
 }
+
+#empty-div {
+    height: 20px;
+}
+
+@media (min-width: 768px) {
+    #empty-div {
+        height: 120px;
+    }
+}
