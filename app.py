@@ -25,10 +25,9 @@ redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 client = redis.Redis.from_url(redis_url)
 
 COLORS = 1
-SECRET_KEY = generate_secret_key()
-PAGE_SIZE = 25
-CALL_API_MINUTES = 15
 DEFAULT_LANGUAGE = 'pt-br'
+SECRET_KEY = generate_secret_key()
+CALL_API_MINUTES = int(os.getenv('CALL_API_MINUTES', 15))
 FLASK_ENV = os.getenv('FLASK_ENV')
 
 dict_config = {
@@ -265,7 +264,7 @@ def before_request():
         logging.info(f"Session - {datetime.utcnow()}: {session['language']}, {session['lat']}, {session['lon']}, {session['city']}, {session['timezone']}")
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(update_shelter_data, 'interval', minutes=CALL_API_MINUTES)
+scheduler.add_job(update_shelter_data, 'interval', minutes=CALL_API_MINUTES, id='update_job')
 scheduler.start()
 
 @server.route('/update-data', methods=['GET'])
@@ -275,6 +274,13 @@ def update_data():
         return jsonify({"message": "Data update triggered"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@server.route('/update-interval', methods=['POST'])
+def update_interval():
+    new_interval = request.json.get('interval', CALL_API_MINUTES)
+    scheduler.reschedule_job('update_job', trigger='interval', minutes=new_interval)
+    return jsonify({"message": "Interval updated", "new_interval": new_interval})
+
 
 @server.route('/pt-br')
 def pt_br():
@@ -535,6 +541,7 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_o
     [State('map', 'figure')]
 )
 def update_data(search, city, verification, pet, availability, pt_clicks, en_clicks, map_figure):
+    APP_TABLE_PAGE_SIZE =  int(os.getenv('APP_TABLE_PAGE_SIZE',25))
     language = session.get('language')
     if en_clicks and (not pt_clicks or en_clicks > pt_clicks):
         language = 'en'
@@ -698,7 +705,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
         ],
         data=filtered_df.to_dict('records'),
         sort_action='native',
-        page_size=PAGE_SIZE,
+        page_size=APP_TABLE_PAGE_SIZE,
         page_action='native',
         style_table={'overflowX': 'auto', 'width': '100%'},
         style_header={'color': fontColor, 'backgroundColor': backgroundColor, 'textAlign': 'left', 'fontSize': '15px'},
