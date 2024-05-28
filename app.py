@@ -358,7 +358,8 @@ app.layout = dbc.Container([
     dbc.Row([
        dbc.Col([
             dbc.Button(id="hide-info"),
-            dbc.Row(dbc.Col(id='num-shelters-div'), style={'margin-top': '5px'}),
+            dbc.Row(dbc.Col(html.Div(id='empty-div', style={'height': '60px'}))),
+            dbc.Row(dbc.Col(id='num-shelters-div')),
             dbc.Row(dbc.Col(id='verified-shelters-div')),
             dbc.Row(dbc.Col(id='not-verified-shelters-div')),
             dbc.Row(dbc.Col(id='pet-friendly-shelters-div')),
@@ -381,6 +382,7 @@ app.layout = dbc.Container([
 ], fluid=True, style={'backgroundColor': backgroundColor})
 
 @app.callback(
+    Output('empty-div', 'style'),
     Output('num-shelters-div', 'style'),
     Output('verified-shelters-div', 'style'),
     Output('not-verified-shelters-div', 'style'),
@@ -399,7 +401,7 @@ def hide_info(n_clicks, num_style, verified_style, not_verified_style, pet_frien
         new_style = {'display': 'none'}
     else:
         new_style = {'display': 'block'}
-    return new_style, new_style, new_style, new_style, new_style
+    return new_style, new_style, new_style, new_style, new_style, new_style
 
 @app.callback(
     Output('map', 'style'),
