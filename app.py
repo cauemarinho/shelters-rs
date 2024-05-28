@@ -641,7 +641,7 @@ def update_data(search, city, verification, pet, availability, pt_clicks, en_cli
     fig.update_traces(marker=dict(size=12))
 
     cities = df['city'].unique()
-    cities_lower = [city.lower() for city in cities]
+    cities_lower = [city.lower() for city in cities if city is not None]
 
     # Set center based in the user location 
     if session_city.lower() in cities_lower:
