@@ -48,11 +48,11 @@ dict_columns = {
     'No': {'pt-br': 'Não', 'en': 'No'},
     'All': {'pt-br': 'Todos', 'en': 'All'},
     'Pet': {'pt-br': 'Animais', 'en': 'Pet'},
-    'AllCities': {'pt-br': 'Todas', 'en': 'All'},
+    'AllCities': {'pt-br': 'Todas cidades', 'en': 'All cities'},
     'City': {'pt-br': 'Cidade', 'en': 'City'},
     'Shelter': {'pt-br': 'Abrigo', 'en': 'Shelter'},
     'People': {'pt-br': 'Pessoas', 'en': 'People'},
-    'UpdatedAt': {'pt-br': 'Atualizado em', 'en': 'Updated At'},
+    'UpdatedAt': {'pt-br': 'Atualizado Em', 'en': 'Updated At'},
     'Address': {'pt-br': 'Endereço', 'en': 'Address'},
     'Capacity': {'pt-br': 'Capacidade', 'en': 'Capacity'},
     'Availability': {'pt-br': 'Disponibilidade', 'en': 'Availability'},
@@ -144,9 +144,9 @@ def get_formated_data():
 def data_cities(df, language):
     df['city'] = df['city'].fillna('').astype(str)
     cities = df['city'].unique()
-    city_options = [{'label': city, 'value': city} for city in cities if city is not None]
-    city_options.insert(0, {'label': dict_columns['AllCities'][language], 'value': dict_columns['AllCities'][language]})
+    city_options = [{'label': city, 'value': city} for city in cities if city is not None and city != '']
     city_options = sorted(city_options, key=lambda x: x['label'])
+    city_options.insert(0, {'label': dict_columns['AllCities'][language], 'value': dict_columns['AllCities'][language]})
     return city_options
 
 def update_shelter_data():
@@ -489,9 +489,9 @@ def update_language(pt_clicks, en_clicks, search_placeholder, city_label, city_o
     ]
 
     simple_options = [
+        {'label': dict_columns['All'][language], 'value': dict_columns['All'][language]},
         {'label': dict_columns['Yes'][language], 'value': True},
-        {'label': dict_columns['No'][language], 'value': False},
-        {'label': dict_columns['All'][language], 'value': dict_columns['All'][language]}
+        {'label': dict_columns['No'][language], 'value': False}
     ]
     
     verification_options = simple_options
