@@ -4,7 +4,7 @@ import os
 import json
 import pandas as pd
 
-# Set the Redis URL
+
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 client = redis.Redis.from_url(redis_url)
 API_URL = os.getenv('API_URL')

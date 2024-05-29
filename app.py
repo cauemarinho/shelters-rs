@@ -10,23 +10,22 @@ import subprocess
 import requests
 import pytz
 import logging
+import secrets
 from flask_sslify import SSLify
 from dash import dcc, html, Input, Output, dash_table, State
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, jsonify, session, request
 from flask_session import Session
 from datetime import datetime, timedelta
-from utils import generate_secret_key
 
 logging.getLogger().setLevel(logging.INFO)
 
-# Set up Redis connection
 redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
 client = redis.Redis.from_url(redis_url)
 
 COLORS = 1
 DEFAULT_LANGUAGE = 'pt-br'
-SECRET_KEY = generate_secret_key()
+SECRET_KEY = secrets.token_hex(16)
 CALL_API_MINUTES = int(os.getenv('CALL_API_MINUTES', 15))
 FLASK_ENV = os.getenv('FLASK_ENV')
 
@@ -293,7 +292,7 @@ def en():
     return app.index()
 
 app.layout = dbc.Container([
-    #Language
+    # Language
     dbc.Row([
         dbc.Col(html.Div([
             html.A([
@@ -305,15 +304,15 @@ app.layout = dbc.Container([
         ]), width="auto"),
     ], className="justify-content-center",
     style={'padding': '10px'}),
-    #Title
+    # Title
     dbc.Row([
         dbc.Col(html.H1(id='title', style={'color': fontColor, 'textAlign': 'center', 'font-family': 'Georgia, serif'}), width=12)
     ], style={'textAlign': 'center'}),
-    #Last Update
+    # Last Update
     dbc.Row([
         dbc.Col(html.Div(id='last-update-div'), width=12)
     ], style={'textAlign': 'center', 'margin-bottom': '5px'}),
-    #Search
+    # Search
     dbc.Row([
         dbc.Col(dcc.Input(
             id='search-filter',
@@ -322,7 +321,7 @@ app.layout = dbc.Container([
             style={'textAlign': 'center'}
         ))
     ], style={'textAlign': 'center', 'margin-bottom': '4px'}),
-    #Filters
+    # Filters
     dbc.Row([
         dbc.Col([
             html.Label(id='city-label', style={'color': fontColor}),
@@ -380,7 +379,7 @@ app.layout = dbc.Container([
         ], xs=12, sm=12, md=6, lg=3, className="mb-2"),
         ], style={'backgroundColor': backgroundColor, 'textAlign': 'center'} 
     ),
-    #Table
+    # Table
     dbc.Row([
         dbc.Col(html.Div(id='shelter-table-div'), width=12)
     ])
